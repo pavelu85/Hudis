@@ -12,6 +12,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.FrameLayout
 import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -58,6 +59,10 @@ class FaceDetectionOverlay(
 
     var predictions: Array<Prediction> = arrayOf()
 
+    private var camera: Camera? = null
+    var currentCameraFacing: Int = -1
+        private set
+
     init {
         doOnLayout {
             overlayHeight = it.measuredHeight
@@ -65,7 +70,13 @@ class FaceDetectionOverlay(
         }
     }
 
+    fun applyZoom(ratio: Float) {
+        if (currentCameraFacing == CameraSelector.LENS_FACING_FRONT) return
+        camera?.cameraControl?.setZoomRatio(ratio)
+    }
+
     fun initializeCamera(cameraFacing: Int) {
+        currentCameraFacing = cameraFacing
         this.cameraFacing = cameraFacing
         this.isImageTransformedInitialized = false
         this.isBoundingBoxTransformedInitialized = false
@@ -90,12 +101,19 @@ class FaceDetectionOverlay(
                         .build()
                 frameAnalyzer.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
+                camera = cameraProvider.bindToLifecycle(
                     lifecycleOwner,
                     cameraSelector,
                     preview,
                     frameAnalyzer,
                 )
+                camera?.cameraInfo?.zoomState?.observe(lifecycleOwner) { state ->
+                    viewModel.minZoomRatio.floatValue = state.minZoomRatio
+                    viewModel.maxZoomRatio.floatValue = state.maxZoomRatio
+                    viewModel.currentZoomRatio.floatValue = state.zoomRatio
+                }
+                val pending = viewModel.requestedZoomRatio.floatValue
+                if (pending != 1f) camera?.cameraControl?.setZoomRatio(pending)
             },
             executor,
         )
@@ -172,17 +190,17 @@ class FaceDetectionOverlay(
                         frameBitmap,
                         flatSearch,
                     )
-                results.forEach { (name, boundingBox, spoofResult) ->
-                    val box = boundingBox.toRectF()
-                    var personName = name
+                results.forEach { result ->
+                    val box = result.boundingBox.toRectF()
+                    var personName = result.personName
                     if (viewModel.getNumPeople().toInt() == 0) {
                         personName = ""
                     }
-                    if (spoofResult != null && spoofResult.isSpoof) {
-                        personName = "$personName (Spoof: ${spoofResult.score})"
+                    if (result.spoofResult != null && result.spoofResult.isSpoof) {
+                        personName = "$personName (Spoof: ${result.spoofResult.score})"
                     }
                     boundingBoxTransform.mapRect(box)
-                    predictions.add(Prediction(box, personName))
+                    predictions.add(Prediction(box, personName, result.notes, result.similarity))
                 }
                 withContext(Dispatchers.Main) {
                     viewModel.faceDetectionMetricsState.value = metrics
@@ -197,6 +215,8 @@ class FaceDetectionOverlay(
     data class Prediction(
         var bbox: RectF,
         var label: String,
+        var notes: String = "",
+        var similarity: Float = 0f,
     )
 
     inner class BoundingBoxOverlay(
@@ -208,11 +228,19 @@ class FaceDetectionOverlay(
                 color = Color.parseColor("#4D90caf9")
                 style = Paint.Style.FILL
             }
-        private val textPaint =
+        private val namePaint =
             Paint().apply {
                 strokeWidth = 2.0f
                 textSize = 36f
+                textAlign = Paint.Align.CENTER
                 color = Color.WHITE
+            }
+        private val subTextPaint =
+            Paint().apply {
+                strokeWidth = 1.5f
+                textSize = 28f
+                textAlign = Paint.Align.CENTER
+                color = Color.parseColor("#CCFFFFFF")
             }
 
         override fun surfaceCreated(holder: SurfaceHolder) {}
@@ -227,9 +255,22 @@ class FaceDetectionOverlay(
         override fun surfaceDestroyed(holder: SurfaceHolder) {}
 
         override fun onDraw(canvas: Canvas) {
-            predictions.forEach {
-                canvas.drawRoundRect(it.bbox, 16f, 16f, boxPaint)
-                canvas.drawText(it.label, it.bbox.centerX(), it.bbox.centerY(), textPaint)
+            predictions.forEach { pred ->
+                canvas.drawRoundRect(pred.bbox, 16f, 16f, boxPaint)
+
+                val lines = mutableListOf(pred.label)
+                if (pred.similarity > 0f) lines.add("${(pred.similarity * 100).toInt()}%")
+                if (pred.notes.isNotEmpty()) lines.add(pred.notes)
+
+                val lineHeight = 42f
+                val totalHeight = lines.size * lineHeight
+                var y = pred.bbox.centerY() - totalHeight / 2 + lineHeight
+
+                lines.forEachIndexed { i, text ->
+                    val paint = if (i == 0) namePaint else subTextPaint
+                    canvas.drawText(text, pred.bbox.centerX(), y, paint)
+                    y += lineHeight
+                }
             }
         }
     }

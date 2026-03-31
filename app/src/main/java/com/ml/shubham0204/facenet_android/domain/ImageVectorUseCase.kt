@@ -30,6 +30,8 @@ class ImageVectorUseCase(
         val personName: String,
         val boundingBox: Rect,
         val spoofResult: FaceSpoofDetector.FaceSpoofResult? = null,
+        val notes: String = "",
+        val similarity: Float = 0f,
     )
 
     // Add the person's image to the database
@@ -94,8 +96,15 @@ class ImageVectorUseCase(
             // If the distance > 0.4, we recognize the person
             // else we conclude that the face does not match enough
             if (distance > 0.3) {
+                val person = personDB.getById(recognitionResult.personID)
                 faceRecognitionResults.add(
-                    FaceRecognitionResult(recognitionResult.personName, boundingBox, spoofResult),
+                    FaceRecognitionResult(
+                        personName = recognitionResult.personName,
+                        boundingBox = boundingBox,
+                        spoofResult = spoofResult,
+                        notes = person?.notes ?: "",
+                        similarity = distance,
+                    ),
                 )
             } else {
                 faceRecognitionResults.add(

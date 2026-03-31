@@ -10,26 +10,34 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -94,8 +103,10 @@ fun DetectScreen(
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(),
                     title = {
+                        val versionName = context.packageManager
+                            .getPackageInfo(context.packageName, 0).versionName
                         Text(
-                            text = stringResource(id = R.string.app_name),
+                            text = "${stringResource(id = R.string.app_name)} v$versionName",
                             style = MaterialTheme.typography.headlineSmall,
                         )
                     },
@@ -141,7 +152,7 @@ fun DetectScreen(
 
 @Composable
 private fun ScreenUI(viewModel: DetectScreenViewModel) {
-    Box {
+    Box(modifier = Modifier.fillMaxSize()) {
         Camera(viewModel)
         DelayedVisibility(viewModel.getNumPeople() > 0) {
             val metrics by remember { viewModel.faceDetectionMetricsState }
@@ -184,6 +195,10 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
             )
         }
         AppAlertDialog()
+        val isFront = viewModel.cameraFacing.intValue == CameraSelector.LENS_FACING_FRONT
+        if (!isFront) {
+            ZoomControls(viewModel = viewModel)
+        }
     }
 }
 
@@ -195,6 +210,7 @@ private fun Camera(viewModel: DetectScreenViewModel) {
         ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
         PackageManager.PERMISSION_GRANTED
     val cameraFacing by remember { viewModel.cameraFacing }
+    val requestedZoom by remember { viewModel.requestedZoomRatio }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     cameraPermissionLauncher =
@@ -208,9 +224,26 @@ private fun Camera(viewModel: DetectScreenViewModel) {
 
     DelayedVisibility(cameraPermissionStatus.value) {
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, _, zoom, _ ->
+                        val newRatio = (viewModel.currentZoomRatio.floatValue * zoom)
+                            .coerceIn(
+                                viewModel.minZoomRatio.floatValue,
+                                viewModel.maxZoomRatio.floatValue,
+                            )
+                        viewModel.currentZoomRatio.floatValue = newRatio
+                        viewModel.requestedZoomRatio.floatValue = newRatio
+                    }
+                },
             factory = { FaceDetectionOverlay(lifecycleOwner, context, viewModel) },
-            update = { it.initializeCamera(cameraFacing) },
+            update = { overlay ->
+                if (overlay.currentCameraFacing != cameraFacing) {
+                    overlay.initializeCamera(cameraFacing)
+                }
+                overlay.applyZoom(requestedZoom)
+            },
         )
     }
     DelayedVisibility(!cameraPermissionStatus.value) {
@@ -245,4 +278,63 @@ private fun camaraPermissionDialog() {
             //       close the app
         },
     )
+}
+
+@Composable
+private fun ZoomControls(viewModel: DetectScreenViewModel) {
+    val maxZoom = viewModel.maxZoomRatio.floatValue
+    val currentZoom = viewModel.currentZoomRatio.floatValue
+
+    val presets = buildList {
+        add(1f)
+        if (maxZoom >= 2f) add(2f)
+        if (maxZoom >= 5f) add(5f)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 96.dp),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "%.1fx".format(currentZoom),
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+                presets.forEach { ratio ->
+                    val isSelected = kotlin.math.abs(currentZoom - ratio) < 0.15f
+                    OutlinedButton(
+                        onClick = { viewModel.setZoom(ratio) },
+                        shape = CircleShape,
+                        border = BorderStroke(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+                        ),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected) Color.White.copy(alpha = 0.25f) else Color.Transparent,
+                            contentColor = Color.White,
+                        ),
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Text("${ratio.toInt()}x", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+    }
 }

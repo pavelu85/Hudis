@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.camera.core.CameraSelector
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -33,6 +34,16 @@ class DetectScreenViewModel(
 
     val faceDetectionMetricsState = mutableStateOf<RecognitionMetrics?>(null)
     val cameraFacing = mutableIntStateOf(getCameraFacing())
+
+    val currentZoomRatio = mutableFloatStateOf(1f)
+    val maxZoomRatio = mutableFloatStateOf(1f)
+    val minZoomRatio = mutableFloatStateOf(1f)
+    val requestedZoomRatio = mutableFloatStateOf(1f)
+
+    fun setZoom(ratio: Float) {
+        requestedZoomRatio.floatValue =
+            ratio.coerceIn(minZoomRatio.floatValue, maxZoomRatio.floatValue)
+    }
 
     // Emits Unit to signal the UI to navigate to the results screen
     private val _navigateToResults = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -100,5 +111,7 @@ class DetectScreenViewModel(
             cameraFacing.intValue = CameraSelector.LENS_FACING_FRONT
         }
         saveCameraFacingSetting(cameraFacing.intValue)
+        requestedZoomRatio.floatValue = 1f
+        currentZoomRatio.floatValue = 1f
     }
 }
