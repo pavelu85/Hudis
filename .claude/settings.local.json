@@ -11,7 +11,10 @@
       "Bash(where adb:*)",
       "Read(//c/Users/pavel/AppData/Local/**)",
       "Bash(mkdir -p \"C:/Projects/Hudis\")",
-      "Bash(cp -r \"C:/Users/pavel/OneDrive/MY_FILES/Projects/Claude/Hudis/.\" \"C:/Projects/Hudis/\")"
+      "Bash(cp -r \"C:/Users/pavel/OneDrive/MY_FILES/Projects/Claude/Hudis/.\" \"C:/Projects/Hudis/\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
