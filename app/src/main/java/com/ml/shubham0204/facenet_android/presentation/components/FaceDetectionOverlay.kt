@@ -10,7 +10,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
 
 @SuppressLint("ViewConstructor")
 @ExperimentalGetImage
@@ -56,6 +59,7 @@ class FaceDetectionOverlay(
     private var cameraFacing: Int? = null
     private lateinit var boundingBoxOverlay: BoundingBoxOverlay
     private lateinit var previewView: PreviewView
+    private lateinit var frozenFrameView: ImageView
 
     var predictions: Array<Prediction> = arrayOf()
 
@@ -73,6 +77,17 @@ class FaceDetectionOverlay(
     fun applyZoom(ratio: Float) {
         if (currentCameraFacing == CameraSelector.LENS_FACING_FRONT) return
         camera?.cameraControl?.setZoomRatio(ratio)
+    }
+
+    fun setPaused(paused: Boolean) {
+        if (!::frozenFrameView.isInitialized) return
+        if (paused) {
+            frozenFrameView.setImageBitmap(previewView.bitmap)
+            frozenFrameView.visibility = View.VISIBLE
+        } else {
+            frozenFrameView.visibility = View.GONE
+            frozenFrameView.setImageBitmap(null)
+        }
     }
 
     fun initializeCamera(cameraFacing: Int) {
@@ -117,12 +132,16 @@ class FaceDetectionOverlay(
             },
             executor,
         )
-        if (childCount == 2) {
-            removeView(this.previewView)
-            removeView(this.boundingBoxOverlay)
-        }
+        removeAllViews()
         this.previewView = previewView
         addView(this.previewView)
+
+        this.frozenFrameView = ImageView(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            visibility = View.GONE
+        }
+        addView(this.frozenFrameView)
 
         val boundingBoxOverlayParams =
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -134,7 +153,7 @@ class FaceDetectionOverlay(
 
     private val analyzer =
         ImageAnalysis.Analyzer { image ->
-            if (isProcessing) {
+            if (isProcessing || viewModel.isPaused.value) {
                 image.close()
                 return@Analyzer
             }
@@ -225,7 +244,7 @@ class FaceDetectionOverlay(
         SurfaceHolder.Callback {
         private val boxPaint =
             Paint().apply {
-                color = Color.parseColor("#4D90caf9")
+                color = "#4D90caf9".toColorInt()
                 style = Paint.Style.FILL
             }
         private val namePaint =
@@ -240,7 +259,7 @@ class FaceDetectionOverlay(
                 strokeWidth = 1.5f
                 textSize = 28f
                 textAlign = Paint.Align.CENTER
-                color = Color.parseColor("#CCFFFFFF")
+                color = "#CCFFFFFF".toColorInt()
             }
 
         override fun surfaceCreated(holder: SurfaceHolder) {}

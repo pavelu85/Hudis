@@ -55,6 +55,9 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            useLegacyPackaging = false  // store .so uncompressed; required for 16 KB page alignment
+        }
     }
     applicationVariants.configureEach {
         kotlin.sourceSets {
@@ -83,8 +86,8 @@ dependencies {
     implementation(libs.androidx.ui.text.google.fonts)
 
     // ObjectBox - vector database
-    debugImplementation("io.objectbox:objectbox-android-objectbrowser:4.0.0")
-    releaseImplementation("io.objectbox:objectbox-android:4.0.0")
+    debugImplementation("io.objectbox:objectbox-android-objectbrowser:4.1.0")
+    releaseImplementation("io.objectbox:objectbox-android:4.1.0")
 
     // dependency injection
     implementation(libs.koin.android)

@@ -55,6 +55,12 @@ class DetectScreenViewModel(
 
     val isProcessingGalleryImage = mutableStateOf(false)
 
+    val isPaused = mutableStateOf(false)
+
+    fun togglePause() {
+        isPaused.value = !isPaused.value
+    }
+
     fun processGalleryImage(uri: Uri) {
         viewModelScope.launch(Dispatchers.Default) {
             isProcessingGalleryImage.value = true

@@ -12,6 +12,7 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -195,6 +196,21 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
             )
         }
         AppAlertDialog()
+        val isPaused by remember { viewModel.isPaused }
+        if (isPaused) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Paused — tap to resume",
+                    color = Color.White,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+        }
         val isFront = viewModel.cameraFacing.intValue == CameraSelector.LENS_FACING_FRONT
         if (!isFront) {
             ZoomControls(viewModel = viewModel)
@@ -211,6 +227,7 @@ private fun Camera(viewModel: DetectScreenViewModel) {
         PackageManager.PERMISSION_GRANTED
     val cameraFacing by remember { viewModel.cameraFacing }
     val requestedZoom by remember { viewModel.requestedZoomRatio }
+    val isPaused by remember { viewModel.isPaused }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     cameraPermissionLauncher =
@@ -226,6 +243,9 @@ private fun Camera(viewModel: DetectScreenViewModel) {
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures { viewModel.togglePause() }
+                }
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoom, _ ->
                         val newRatio = (viewModel.currentZoomRatio.floatValue * zoom)
@@ -243,6 +263,7 @@ private fun Camera(viewModel: DetectScreenViewModel) {
                     overlay.initializeCamera(cameraFacing)
                 }
                 overlay.applyZoom(requestedZoom)
+                overlay.setPaused(isPaused)
             },
         )
     }
