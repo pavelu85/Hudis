@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(dir \"C:\\\\Users\\\\pavel\\\\OneDrive\\\\MY_FILES\\\\Projects\\\\Claude\\\\Hudis\")",
+      "Bash(dir /a \"C:\\\\Users\\\\pavel\\\\OneDrive\\\\MY_FILES\\\\Projects\\\\Claude\\\\Hudis\")",
+      "Bash(curl -L -o \"C:\\\\Users\\\\pavel\\\\OneDrive\\\\MY_FILES\\\\Projects\\\\Claude\\\\hudis_repo.zip\" \"https://github.com/shubham0204/OnDevice-Face-Recognition-Android/archive/refs/heads/master.zip\")",
+      "Bash(unzip -q \"C:\\\\Users\\\\pavel\\\\OneDrive\\\\MY_FILES\\\\Projects\\\\Claude\\\\hudis_repo.zip\" -d \"C:\\\\Users\\\\pavel\\\\OneDrive\\\\MY_FILES\\\\Projects\\\\Claude\\\\HudisExtract\")",
+      "Bash(where java:*)",
+      "Bash(java -version)",
+      "Bash(where adb:*)",
+      "Read(//c/Users/pavel/AppData/Local/**)",
+      "Bash(mkdir -p \"C:/Projects/Hudis\")",
+      "Bash(cp -r \"C:/Users/pavel/OneDrive/MY_FILES/Projects/Claude/Hudis/.\" \"C:/Projects/Hudis/\")"
+    ]
+  }
+}
