@@ -5,6 +5,11 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+fun gitCommitCount(): Int =
+    Runtime.getRuntime()
+        .exec(arrayOf("git", "rev-list", "--count", "HEAD"), null, rootDir)
+        .inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 1
+
 android {
     namespace = "com.ml.shubham0204.facenet_android"
     compileSdk = 34
@@ -13,8 +18,8 @@ android {
         applicationId = "com.ml.shubham0204.facenet_android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.1.0"
+        versionCode = gitCommitCount()
+        versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -264,23 +264,13 @@ private fun CandidateCard(rank: Int, candidate: MatchCandidate) {
                         candidate.lastSeenTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
                     )}"
                 } else {
-                    "Never seen"
+                    "First detection!"
                 }
                 Text(
                     text = lastSeenText,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (candidate.addTime > 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "First seen: ${DateUtils.getRelativeTimeSpanString(
-                            candidate.addTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
-                        )}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
     }

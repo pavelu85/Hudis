@@ -286,14 +286,11 @@ class FaceDetectionOverlay(
 
                 val lines = mutableListOf(pred.label)
                 if (pred.similarity > 0f) lines.add("${(pred.similarity * 100).toInt()}%")
-                if (pred.lastSeenTime > 0) {
+                if (pred.similarity > 0f && pred.lastSeenTime == 0L) {
+                    lines.add("First detection!")
+                } else if (pred.lastSeenTime > 0) {
                     lines.add("Last seen: ${DateUtils.getRelativeTimeSpanString(
                         pred.lastSeenTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
-                    )}")
-                }
-                if (pred.addTime > 0) {
-                    lines.add("First seen: ${DateUtils.getRelativeTimeSpanString(
-                        pred.addTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
                     )}")
                 }
                 if (pred.notes.isNotEmpty()) lines.add(pred.notes)

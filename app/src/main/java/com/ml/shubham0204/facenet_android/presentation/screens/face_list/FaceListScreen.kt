@@ -165,14 +165,6 @@ private fun FaceListItem(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.DarkGray,
             )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "First seen: ${DateUtils.getRelativeTimeSpanString(
-                    personRecord.addTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
-                )}",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.DarkGray,
-            )
         }
         Icon(
             modifier =
