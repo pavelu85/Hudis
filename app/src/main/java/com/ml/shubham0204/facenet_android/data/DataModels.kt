@@ -35,6 +35,8 @@ data class PersonRecord(
     var numImages: Long = 0,
     // time when the record was added
     var addTime: Long = 0,
+    // time when this person was last identified (0 if never)
+    var lastSeenTime: Long = 0,
 )
 
 // Represents a single top-N recognition match candidate
@@ -45,6 +47,8 @@ data class MatchCandidate(
     val profilePhotoPath: String?,
     // cosine similarity in [0, 1]; higher = more similar
     val similarity: Float,
+    // time when this person was last identified (0 if never)
+    val lastSeenTime: Long = 0,
 )
 
 data class RecognitionMetrics(

@@ -88,7 +88,10 @@ fun DetectScreen(
 
     // Observe navigation events from the ViewModel
     LaunchedEffect(Unit) {
-        viewModel.navigateToResults.collect { onNavigateToResults() }
+        viewModel.navigateToResults.collect {
+            viewModel.flushSeenPersons()
+            onNavigateToResults()
+        }
     }
     LaunchedEffect(Unit) {
         viewModel.galleryError.collect { message ->
@@ -103,10 +106,9 @@ fun DetectScreen(
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(),
                     title = {
-                        val versionName = context.packageManager
-                            .getPackageInfo(context.packageName, 0).versionName
+                        val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
                         Text(
-                            text = "${stringResource(id = R.string.app_name)} v$versionName",
+                            text = "${stringResource(id = R.string.app_name)} v${pkg.versionName} (${pkg.longVersionCode})",
                             style = MaterialTheme.typography.headlineSmall,
                         )
                     },
@@ -132,7 +134,10 @@ fun DetectScreen(
                                 )
                             }
                         }
-                        IconButton(onClick = onOpenFaceListClick) {
+                        IconButton(onClick = {
+                            viewModel.flushSeenPersons()
+                            onOpenFaceListClick()
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Face,
                                 contentDescription = "Open Face List",

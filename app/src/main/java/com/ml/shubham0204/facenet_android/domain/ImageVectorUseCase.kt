@@ -28,10 +28,12 @@ class ImageVectorUseCase(
 ) {
     data class FaceRecognitionResult(
         val personName: String,
+        val personID: Long = 0,
         val boundingBox: Rect,
         val spoofResult: FaceSpoofDetector.FaceSpoofResult? = null,
         val notes: String = "",
         val similarity: Float = 0f,
+        val lastSeenTime: Long = 0,
     )
 
     // Add the person's image to the database
@@ -83,7 +85,7 @@ class ImageVectorUseCase(
                 measureTimedValue { imagesVectorDB.getNearestEmbeddingPersonName(embedding, flatSearch) }
             avgT3 += t3.toLong(DurationUnit.MILLISECONDS)
             if (recognitionResult == null) {
-                faceRecognitionResults.add(FaceRecognitionResult("Not recognized", boundingBox))
+                faceRecognitionResults.add(FaceRecognitionResult(personName = "Not recognized", boundingBox = boundingBox))
                 continue
             }
 
@@ -100,15 +102,17 @@ class ImageVectorUseCase(
                 faceRecognitionResults.add(
                     FaceRecognitionResult(
                         personName = recognitionResult.personName,
+                        personID = recognitionResult.personID,
                         boundingBox = boundingBox,
                         spoofResult = spoofResult,
                         notes = person?.notes ?: "",
                         similarity = distance,
+                        lastSeenTime = person?.lastSeenTime ?: 0,
                     ),
                 )
             } else {
                 faceRecognitionResults.add(
-                    FaceRecognitionResult("Not recognized", boundingBox, spoofResult),
+                    FaceRecognitionResult(personName = "Not recognized", boundingBox = boundingBox, spoofResult = spoofResult),
                 )
             }
         }

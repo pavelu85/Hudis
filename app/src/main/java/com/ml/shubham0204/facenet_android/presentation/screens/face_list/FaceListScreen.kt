@@ -153,8 +153,15 @@ private fun FaceListItem(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
             }
+            val lastSeenText = if (personRecord.lastSeenTime > 0) {
+                "Last seen: ${DateUtils.getRelativeTimeSpanString(
+                    personRecord.lastSeenTime, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS
+                )}"
+            } else {
+                "Never seen"
+            }
             Text(
-                text = "${personRecord.numImages} image(s) • ${DateUtils.getRelativeTimeSpanString(personRecord.addTime)}",
+                text = "${personRecord.numImages} image(s) • $lastSeenText",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.DarkGray,
             )

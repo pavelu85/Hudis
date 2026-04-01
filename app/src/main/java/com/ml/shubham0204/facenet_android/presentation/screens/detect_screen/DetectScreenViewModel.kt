@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ml.shubham0204.facenet_android.AppConfig
 import com.ml.shubham0204.facenet_android.data.RecognitionMetrics
 import com.ml.shubham0204.facenet_android.data.ResultsHolder
 import com.ml.shubham0204.facenet_android.data.SettingsStore
@@ -57,6 +58,23 @@ class DetectScreenViewModel(
 
     val isPaused = mutableStateOf(false)
 
+    private val seenPersonIds = mutableSetOf<Long>()
+
+    fun recordSeenPerson(personID: Long) {
+        seenPersonIds.add(personID)
+    }
+
+    fun flushSeenPersons() {
+        val now = System.currentTimeMillis()
+        seenPersonIds.forEach { personUseCase.updateLastSeen(it, now) }
+        seenPersonIds.clear()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        flushSeenPersons()
+    }
+
     fun togglePause() {
         isPaused.value = !isPaused.value
     }
@@ -76,6 +94,11 @@ class DetectScreenViewModel(
                 val result = imageVectorUseCase.getTopNCandidatesFromBitmap(bitmap)
                 result
                     .onSuccess { candidates ->
+                        candidates.firstOrNull()?.let { top ->
+                            if (top.similarity >= AppConfig.LAST_SEEN_MIN_CONFIDENCE) {
+                                personUseCase.updateLastSeen(top.personID, System.currentTimeMillis())
+                            }
+                        }
                         resultsHolder.candidates = candidates
                         resultsHolder.detectedFaceBitmap = bitmap
                         _navigateToResults.emit(Unit)

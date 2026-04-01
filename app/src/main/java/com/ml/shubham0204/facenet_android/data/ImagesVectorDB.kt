@@ -114,6 +114,7 @@ class ImagesVectorDB {
                     notes = person.notes,
                     profilePhotoPath = person.profilePhotoPath,
                     similarity = sim,
+                    lastSeenTime = person.lastSeenTime,
                 )
             }
     }

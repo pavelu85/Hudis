@@ -17,6 +17,11 @@ class PersonDB {
         personBox.removeByIds(listOf(personID))
     }
 
+    fun updateLastSeen(personID: Long, timestamp: Long) {
+        val person = personBox.get(personID) ?: return
+        personBox.put(person.copy(lastSeenTime = timestamp))
+    }
+
     fun getById(personID: Long): PersonRecord? = personBox.get(personID)
 
     // Returns the number of records present in the collection

@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.text.format.DateUtils
 import coil.compose.AsyncImage
 import com.ml.shubham0204.facenet_android.data.MatchCandidate
 import com.ml.shubham0204.facenet_android.presentation.theme.HudisTheme
@@ -255,6 +256,16 @@ private fun CandidateCard(rank: Int, candidate: MatchCandidate) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (candidate.lastSeenTime > 0 && !DateUtils.isToday(candidate.lastSeenTime)) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Last seen: ${DateUtils.getRelativeTimeSpanString(
+                            candidate.lastSeenTime, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS
+                        )}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

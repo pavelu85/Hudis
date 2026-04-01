@@ -50,6 +50,10 @@ class PersonUseCase(
         personDB.addPerson(existing.copy(personName = name, notes = notes, profilePhotoPath = newProfilePath))
     }
 
+    fun updateLastSeen(personID: Long, timestamp: Long) {
+        personDB.updateLastSeen(personID, timestamp)
+    }
+
     fun incrementImageCount(personID: Long, count: Int) {
         val existing = personDB.getById(personID) ?: return
         personDB.addPerson(existing.copy(numImages = existing.numImages + count))

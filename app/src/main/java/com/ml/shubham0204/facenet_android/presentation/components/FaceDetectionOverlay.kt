@@ -3,6 +3,7 @@ package com.ml.shubham0204.facenet_android.presentation.components
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.text.format.DateUtils
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -33,6 +34,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.toColorInt
+import com.ml.shubham0204.facenet_android.AppConfig
 
 @SuppressLint("ViewConstructor")
 @ExperimentalGetImage
@@ -218,8 +220,11 @@ class FaceDetectionOverlay(
                     if (result.spoofResult != null && result.spoofResult.isSpoof) {
                         personName = "$personName (Spoof: ${result.spoofResult.score})"
                     }
+                    if (result.similarity >= AppConfig.LAST_SEEN_MIN_CONFIDENCE && result.personID > 0) {
+                        viewModel.recordSeenPerson(result.personID)
+                    }
                     boundingBoxTransform.mapRect(box)
-                    predictions.add(Prediction(box, personName, result.notes, result.similarity))
+                    predictions.add(Prediction(box, personName, result.notes, result.similarity, result.lastSeenTime))
                 }
                 withContext(Dispatchers.Main) {
                     viewModel.faceDetectionMetricsState.value = metrics
@@ -236,6 +241,7 @@ class FaceDetectionOverlay(
         var label: String,
         var notes: String = "",
         var similarity: Float = 0f,
+        var lastSeenTime: Long = 0,
     )
 
     inner class BoundingBoxOverlay(
@@ -279,6 +285,11 @@ class FaceDetectionOverlay(
 
                 val lines = mutableListOf(pred.label)
                 if (pred.similarity > 0f) lines.add("${(pred.similarity * 100).toInt()}%")
+                if (pred.lastSeenTime > 0 && !DateUtils.isToday(pred.lastSeenTime)) {
+                    lines.add("Last seen: ${DateUtils.getRelativeTimeSpanString(
+                        pred.lastSeenTime, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS
+                    )}")
+                }
                 if (pred.notes.isNotEmpty()) lines.add(pred.notes)
 
                 val lineHeight = 42f
