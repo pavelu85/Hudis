@@ -1,6 +1,7 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.detect_screen
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.camera.core.CameraSelector
@@ -13,6 +14,7 @@ import com.ml.shubham0204.facenet_android.AppConfig
 import com.ml.shubham0204.facenet_android.data.RecognitionMetrics
 import com.ml.shubham0204.facenet_android.data.ResultsHolder
 import com.ml.shubham0204.facenet_android.data.SettingsStore
+import com.ml.shubham0204.facenet_android.domain.AutoCaptureResult
 import com.ml.shubham0204.facenet_android.domain.ImageVectorUseCase
 import com.ml.shubham0204.facenet_android.domain.PersonUseCase
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +59,42 @@ class DetectScreenViewModel(
     val isProcessingGalleryImage = mutableStateOf(false)
 
     val isPaused = mutableStateOf(false)
+
+    // Auto-Monitor: automatically capture and save unknown faces seen on live camera
+    val isAutoMonitorEnabled = mutableStateOf(false)
+    private val DEBOUNCE_WINDOW_MS = 10_000L
+    // Tracks recently auto-created persons to avoid duplicates across consecutive frames
+    private val recentAutoCaptures = LinkedHashMap<Long, Long>()  // personID -> timestamp
+
+    fun toggleAutoMonitor() {
+        isAutoMonitorEnabled.value = !isAutoMonitorEnabled.value
+        if (!isAutoMonitorEnabled.value) recentAutoCaptures.clear()
+    }
+
+    // Returns true if a new person was created, false if debounced or already known.
+    // Must be called from a coroutine (Dispatchers.Default is fine).
+    suspend fun maybeAutoCapture(embedding: FloatArray, croppedFace: Bitmap): Boolean {
+        val now = System.currentTimeMillis()
+        // Prune stale debounce entries
+        recentAutoCaptures.entries.removeIf { it.value < now - DEBOUNCE_WINDOW_MS }
+        // Check this face against recently auto-created persons to avoid multi-frame duplicates
+        if (recentAutoCaptures.isNotEmpty()) {
+            val recentPersons = recentAutoCaptures.keys.mapNotNull { personUseCase.getById(it) }
+            val candidates = imageVectorUseCase.imagesVectorDB.getTopNCandidates(
+                embedding, recentPersons, topN = 1, threshold = AppConfig.IDENTITY_CERTAINTY_THRESHOLD
+            )
+            if (candidates.isNotEmpty() && candidates[0].similarity >= AppConfig.IDENTITY_CERTAINTY_THRESHOLD) {
+                return false
+            }
+        }
+        return when (val result = imageVectorUseCase.checkAndAutoCapture(embedding, croppedFace)) {
+            is AutoCaptureResult.NewPersonCreated -> {
+                recentAutoCaptures[result.personID] = now
+                true
+            }
+            else -> false
+        }
+    }
 
     private val seenPersonIds = mutableSetOf<Long>()
 

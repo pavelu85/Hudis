@@ -30,6 +30,12 @@ class PersonDB {
     // Returns all person records as a plain list (for one-shot reads, e.g. during recognition)
     fun getAllList(): List<PersonRecord> = personBox.all
 
+    // Returns how many PersonRecords have names starting with "Unknown ".
+    // Used to assign sequential auto-generated names in Auto-Monitor mode.
+    fun countUnknownPersons(): Int =
+        personBox.query(PersonRecord_.personName.startsWith("Unknown "))
+            .build().count().toInt()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getAll(): Flow<MutableList<PersonRecord>> =
         personBox

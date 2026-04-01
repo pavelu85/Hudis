@@ -30,6 +30,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,6 +79,7 @@ private lateinit var cameraPermissionLauncher: ManagedActivityResultLauncher<Str
 fun DetectScreen(
     onOpenFaceListClick: () -> Unit,
     onNavigateToResults: () -> Unit,
+    onOpenAutoMonitor: () -> Unit,
 ) {
     val viewModel: DetectScreenViewModel = koinViewModel()
     val context = LocalContext.current
@@ -114,6 +118,22 @@ fun DetectScreen(
                     },
                     actions = {
                         val isProcessing by remember { viewModel.isProcessingGalleryImage }
+                        val isAutoMonitor by remember { viewModel.isAutoMonitorEnabled }
+                        // Live camera Auto-Monitor toggle
+                        IconButton(onClick = { viewModel.toggleAutoMonitor() }) {
+                            Icon(
+                                imageVector = if (isAutoMonitor) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (isAutoMonitor) "Auto-Monitor ON" else "Auto-Monitor OFF",
+                                tint = if (isAutoMonitor) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Unspecified,
+                            )
+                        }
+                        // Open batch Auto-Monitor screen
+                        IconButton(onClick = onOpenAutoMonitor) {
+                            Icon(
+                                imageVector = Icons.Default.ImageSearch,
+                                contentDescription = "Batch Auto-Monitor",
+                            )
+                        }
                         IconButton(
                             onClick = {
                                 galleryLauncher.launch(
@@ -153,7 +173,22 @@ fun DetectScreen(
                 )
             },
         ) { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding)) { ScreenUI(viewModel) }
+            Column(modifier = Modifier.padding(innerPadding)) {
+                val isAutoMonitor by remember { viewModel.isAutoMonitorEnabled }
+                if (isAutoMonitor) {
+                    Text(
+                        text = "Auto-Monitor ON — unknown faces will be saved automatically",
+                        color = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                ScreenUI(viewModel)
+            }
         }
     }
 }

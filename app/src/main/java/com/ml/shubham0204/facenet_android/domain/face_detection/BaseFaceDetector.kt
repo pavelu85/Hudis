@@ -15,6 +15,10 @@ abstract class BaseFaceDetector {
 
     abstract suspend fun getAllCroppedFaces(frameBitmap: Bitmap): List<Pair<Bitmap, Rect>>
 
+    // Convenience: decode a content URI and return all cropped faces from it.
+    // Subclasses implement this using their stored Context.
+    abstract suspend fun getAllCroppedFacesFromUri(imageUri: Uri): List<Pair<Bitmap, Rect>>
+
     protected fun getBitmapFromUri(context: Context, imageUri: Uri): Bitmap? {
         var imageInputStream =
             context.contentResolver.openInputStream(imageUri) ?: return null

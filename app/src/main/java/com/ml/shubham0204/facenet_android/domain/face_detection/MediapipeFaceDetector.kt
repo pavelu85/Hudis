@@ -66,6 +66,11 @@ class MediapipeFaceDetector(
             }
         }
 
+    override suspend fun getAllCroppedFacesFromUri(imageUri: Uri): List<Pair<Bitmap, Rect>> {
+        val bitmap = getBitmapFromUri(context, imageUri) ?: return emptyList()
+        return getAllCroppedFaces(bitmap)
+    }
+
     // Detects multiple faces from the `frameBitmap`
     // and returns pairs of (croppedFace , boundingBoxRect)
     // Used by ImageVectorUseCase.kt

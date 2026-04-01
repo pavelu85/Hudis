@@ -3,6 +3,7 @@ package com.ml.shubham0204.facenet_android.domain
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
+import com.ml.shubham0204.facenet_android.AppConfig
 import com.ml.shubham0204.facenet_android.data.FaceImageRecord
 import com.ml.shubham0204.facenet_android.data.ImagesVectorDB
 import com.ml.shubham0204.facenet_android.data.MatchCandidate
@@ -11,10 +12,7 @@ import com.ml.shubham0204.facenet_android.data.RecognitionMetrics
 import com.ml.shubham0204.facenet_android.domain.embeddings.FaceNet
 import com.ml.shubham0204.facenet_android.domain.face_detection.BaseFaceDetector
 import com.ml.shubham0204.facenet_android.domain.face_detection.FaceSpoofDetector
-import com.ml.shubham0204.facenet_android.domain.face_detection.MediapipeFaceDetector
 import org.koin.core.annotation.Single
-import kotlin.math.pow
-import kotlin.math.sqrt
 import kotlin.time.DurationUnit
 import kotlin.time.measureTimedValue
 
@@ -22,9 +20,10 @@ import kotlin.time.measureTimedValue
 class ImageVectorUseCase(
     private val faceDetector: BaseFaceDetector,
     private val faceSpoofDetector: FaceSpoofDetector,
-    private val imagesVectorDB: ImagesVectorDB,
+    val imagesVectorDB: ImagesVectorDB,
     private val personDB: PersonDB,
     private val faceNet: FaceNet,
+    private val personUseCase: PersonUseCase,
 ) {
     data class FaceRecognitionResult(
         val personName: String,
@@ -35,6 +34,9 @@ class ImageVectorUseCase(
         val similarity: Float = 0f,
         val lastSeenTime: Long = 0,
         val addTime: Long = 0,
+        // Embedding is populated for all detected faces so auto-monitor can reuse it
+        // without re-running FaceNet.
+        val embedding: FloatArray? = null,
     )
 
     // Add the person's image to the database
@@ -86,7 +88,13 @@ class ImageVectorUseCase(
                 measureTimedValue { imagesVectorDB.getNearestEmbeddingPersonName(embedding, flatSearch) }
             avgT3 += t3.toLong(DurationUnit.MILLISECONDS)
             if (recognitionResult == null) {
-                faceRecognitionResults.add(FaceRecognitionResult(personName = "Not recognized", boundingBox = boundingBox))
+                faceRecognitionResults.add(
+                    FaceRecognitionResult(
+                        personName = "Not recognized",
+                        boundingBox = boundingBox,
+                        embedding = embedding,
+                    )
+                )
                 continue
             }
 
@@ -110,11 +118,17 @@ class ImageVectorUseCase(
                         similarity = distance,
                         lastSeenTime = person?.lastSeenTime ?: 0,
                         addTime = person?.addTime ?: 0,
+                        embedding = embedding,
                     ),
                 )
             } else {
                 faceRecognitionResults.add(
-                    FaceRecognitionResult(personName = "Not recognized", boundingBox = boundingBox, spoofResult = spoofResult),
+                    FaceRecognitionResult(
+                        personName = "Not recognized",
+                        boundingBox = boundingBox,
+                        spoofResult = spoofResult,
+                        embedding = embedding,
+                    ),
                 )
             }
         }
@@ -136,19 +150,7 @@ class ImageVectorUseCase(
     private fun cosineDistance(
         x1: FloatArray,
         x2: FloatArray,
-    ): Float {
-        var mag1 = 0.0f
-        var mag2 = 0.0f
-        var product = 0.0f
-        for (i in x1.indices) {
-            mag1 += x1[i].pow(2)
-            mag2 += x2[i].pow(2)
-            product += x1[i] * x2[i]
-        }
-        mag1 = sqrt(mag1)
-        mag2 = sqrt(mag2)
-        return product / (mag1 * mag2)
-    }
+    ): Float = com.ml.shubham0204.facenet_android.domain.cosineDistance(x1, x2)
 
     // Given a single bitmap (e.g. from gallery), detect the largest face, embed it,
     // and return the top-N matching persons from the database.
@@ -171,5 +173,142 @@ class ImageVectorUseCase(
 
     fun removeImages(personID: Long) {
         imagesVectorDB.removeFaceRecordsWithPersonID(personID)
+    }
+
+    // ---------------------------------------------------------------------------
+    // Auto-Monitor: Batch photo processing
+    // ---------------------------------------------------------------------------
+
+    // Processes a batch of image URIs and automatically creates or updates person
+    // records based on face similarity. Faces matching existing persons
+    // (similarity >= threshold) have their embedding added to that person.
+    // Unmatched faces are clustered together and saved as new "Unknown N" persons.
+    suspend fun processBatchForAutoMonitor(
+        imageUris: List<Uri>,
+        threshold: Float = AppConfig.IDENTITY_CERTAINTY_THRESHOLD,
+        onProgress: suspend (processed: Int, total: Int, status: String) -> Unit,
+    ): BatchProcessingResult {
+        val extractedFaces = mutableListOf<ExtractedFace>()
+        var skippedNoFace = 0
+
+        // Step A: Extract all faces from all photos
+        for ((index, uri) in imageUris.withIndex()) {
+            onProgress(index, imageUris.size, "Detecting faces in photo ${index + 1}/${imageUris.size}")
+            val croppedFaces = faceDetector.getAllCroppedFacesFromUri(uri)
+            if (croppedFaces.isEmpty()) {
+                skippedNoFace++
+                continue
+            }
+            for ((croppedBitmap, _) in croppedFaces) {
+                val embedding = faceNet.getFaceEmbedding(croppedBitmap)
+                extractedFaces.add(ExtractedFace(croppedBitmap, embedding, index))
+            }
+        }
+
+        // Step B: Match each face against the existing DB
+        val allPersons = personDB.getAllList()
+        val resolutions = mutableListOf<BatchFaceResolution>()
+        for (face in extractedFaces) {
+            val candidates = imagesVectorDB.getTopNCandidates(face.embedding, allPersons, topN = 1, threshold = threshold)
+            if (candidates.isNotEmpty() && candidates[0].similarity >= threshold) {
+                resolutions.add(BatchFaceResolution.ExistingPerson(face, candidates[0].personID, candidates[0].personName))
+            } else {
+                resolutions.add(BatchFaceResolution.NewCluster(face, clusterIndex = -1))
+            }
+        }
+
+        // Step C: In-batch deduplication for unmatched faces
+        // Each cluster is represented by its running-sum embedding and count.
+        data class ClusterState(val faces: MutableList<ExtractedFace>, val embeddingSum: FloatArray, var count: Int)
+
+        val clusters = mutableListOf<ClusterState>()
+        for (resolution in resolutions) {
+            if (resolution !is BatchFaceResolution.NewCluster) continue
+            val face = resolution.face
+            var matchedCluster = -1
+            for ((ci, cluster) in clusters.withIndex()) {
+                val centroid = FloatArray(face.embedding.size) { cluster.embeddingSum[it] / cluster.count }
+                if (cosineDistance(face.embedding, centroid) >= threshold) {
+                    matchedCluster = ci
+                    break
+                }
+            }
+            if (matchedCluster >= 0) {
+                val cluster = clusters[matchedCluster]
+                cluster.faces.add(face)
+                for (i in face.embedding.indices) cluster.embeddingSum[i] += face.embedding[i]
+                cluster.count++
+                resolution.clusterIndex = matchedCluster
+            } else {
+                resolution.clusterIndex = clusters.size
+                val sum = face.embedding.copyOf()
+                clusters.add(ClusterState(mutableListOf(face), sum, 1))
+            }
+        }
+
+        // Step D: Commit writes
+        onProgress(imageUris.size, imageUris.size, "Saving results…")
+        var matchedCount = 0
+
+        // D1: Add embeddings to existing persons
+        for (res in resolutions) {
+            if (res !is BatchFaceResolution.ExistingPerson) continue
+            imagesVectorDB.addFaceImageRecord(
+                FaceImageRecord(personID = res.personID, personName = res.personName, faceEmbedding = res.face.embedding)
+            )
+            personUseCase.incrementImageCount(res.personID, 1)
+            matchedCount++
+        }
+
+        // D2: Create new Unknown N persons for each cluster
+        val baseUnknownCount = personDB.countUnknownPersons()
+        for ((ci, cluster) in clusters.withIndex()) {
+            val newName = "Unknown ${baseUnknownCount + ci + 1}"
+            val profilePath = personUseCase.saveBitmapAsProfilePhoto(cluster.faces[0].sourceBitmap)
+            val newPersonID = personUseCase.addPerson(
+                name = newName,
+                numImages = cluster.faces.size.toLong(),
+                profilePhotoPath = profilePath,
+            )
+            for (face in cluster.faces) {
+                imagesVectorDB.addFaceImageRecord(
+                    FaceImageRecord(personID = newPersonID, personName = newName, faceEmbedding = face.embedding)
+                )
+            }
+        }
+
+        onProgress(imageUris.size, imageUris.size, "Done")
+        return BatchProcessingResult(
+            totalFacesFound = extractedFaces.size,
+            matchedToExisting = matchedCount,
+            newPersonsCreated = clusters.size,
+            skippedNoFace = skippedNoFace,
+        )
+    }
+
+    // ---------------------------------------------------------------------------
+    // Auto-Monitor: Live camera capture
+    // ---------------------------------------------------------------------------
+
+    // Called when a live-camera face is unrecognized and auto-monitor is ON.
+    // If the embedding matches no existing person, creates a new "Unknown N" record.
+    // Debouncing (to avoid multi-frame duplicates) is handled by the caller (ViewModel).
+    suspend fun checkAndAutoCapture(
+        embedding: FloatArray,
+        croppedFace: Bitmap,
+        threshold: Float = AppConfig.IDENTITY_CERTAINTY_THRESHOLD,
+    ): AutoCaptureResult {
+        val allPersons = personDB.getAllList()
+        val candidates = imagesVectorDB.getTopNCandidates(embedding, allPersons, topN = 1, threshold = threshold)
+        if (candidates.isNotEmpty() && candidates[0].similarity >= threshold) {
+            return AutoCaptureResult.AlreadyKnown
+        }
+        val newName = "Unknown ${personDB.countUnknownPersons() + 1}"
+        val profilePath = personUseCase.saveBitmapAsProfilePhoto(croppedFace)
+        val newID = personUseCase.addPerson(name = newName, numImages = 1L, profilePhotoPath = profilePath)
+        imagesVectorDB.addFaceImageRecord(
+            FaceImageRecord(personID = newID, personName = newName, faceEmbedding = embedding)
+        )
+        return AutoCaptureResult.NewPersonCreated(newID, newName)
     }
 }

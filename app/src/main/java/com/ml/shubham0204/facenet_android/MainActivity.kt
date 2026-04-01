@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ml.shubham0204.facenet_android.presentation.screens.add_face.AddFaceScreen
+import com.ml.shubham0204.facenet_android.presentation.screens.auto_monitor.AutoMonitorScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.detect_screen.DetectScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.edit_face.EditFaceScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.face_list.FaceListScreen
@@ -30,10 +31,14 @@ class MainActivity : ComponentActivity() {
                 exitTransition = { fadeOut() },
             ) {
                 composable("add-face") { AddFaceScreen { navHostController.navigateUp() } }
+                composable("auto-monitor") {
+                    AutoMonitorScreen(onNavigateBack = { navHostController.navigateUp() })
+                }
                 composable("detect") {
                     DetectScreen(
                         onOpenFaceListClick = { navHostController.navigate("face-list") },
                         onNavigateToResults = { navHostController.navigate("results") },
+                        onOpenAutoMonitor = { navHostController.navigate("auto-monitor") },
                     )
                 }
                 composable("face-list") {

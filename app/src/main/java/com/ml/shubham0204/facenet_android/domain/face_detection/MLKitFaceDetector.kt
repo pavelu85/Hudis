@@ -63,6 +63,11 @@ class MLKitFaceDetector(
             }
         }
 
+    override suspend fun getAllCroppedFacesFromUri(imageUri: Uri): List<Pair<Bitmap, Rect>> {
+        val bitmap = getBitmapFromUri(context, imageUri) ?: return emptyList()
+        return getAllCroppedFaces(bitmap)
+    }
+
     override suspend fun getAllCroppedFaces(frameBitmap: Bitmap): List<Pair<Bitmap, Rect>> =
         withContext(
             Dispatchers.IO

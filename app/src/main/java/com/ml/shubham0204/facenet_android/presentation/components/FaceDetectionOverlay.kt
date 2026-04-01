@@ -223,6 +223,21 @@ class FaceDetectionOverlay(
                     if (result.similarity >= AppConfig.LAST_SEEN_MIN_CONFIDENCE && result.personID > 0) {
                         viewModel.recordSeenPerson(result.personID)
                     }
+                    // Auto-Monitor: auto-save unrecognized faces when the toggle is ON
+                    if (viewModel.isAutoMonitorEnabled.value
+                        && result.personName == "Not recognized"
+                        && result.embedding != null
+                    ) {
+                        val bbox = result.boundingBox
+                        val left = bbox.left.coerceAtLeast(0)
+                        val top = bbox.top.coerceAtLeast(0)
+                        val width = bbox.width().coerceAtMost(frameBitmap.width - left)
+                        val height = bbox.height().coerceAtMost(frameBitmap.height - top)
+                        if (width > 0 && height > 0) {
+                            val faceBitmap = Bitmap.createBitmap(frameBitmap, left, top, width, height)
+                            viewModel.maybeAutoCapture(result.embedding, faceBitmap)
+                        }
+                    }
                     boundingBoxTransform.mapRect(box)
                     predictions.add(Prediction(box, personName, result.notes, result.similarity, result.lastSeenTime, result.addTime))
                 }
