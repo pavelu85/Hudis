@@ -1,5 +1,7 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.edit_face
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -23,9 +25,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.ml.shubham0204.facenet_android.data.EncounterRecord
 import com.ml.shubham0204.facenet_android.presentation.components.AppAlertDialog
 import com.ml.shubham0204.facenet_android.presentation.components.AppProgressDialog
 import com.ml.shubham0204.facenet_android.presentation.components.DelayedVisibility
@@ -54,6 +61,8 @@ import com.ml.shubham0204.facenet_android.presentation.components.showProgressDi
 import com.ml.shubham0204.facenet_android.presentation.theme.HudisTheme
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
+import java.text.DateFormat
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -226,6 +235,72 @@ private fun ScreenUI(viewModel: EditFaceScreenViewModel, onNavigateBack: () -> U
             }
         }
         ImagesGrid(viewModel)
+        EncounterHistory(viewModel)
+    }
+}
+
+@Composable
+private fun EncounterHistory(viewModel: EditFaceScreenViewModel) {
+    val encounters by remember { viewModel.encounters }
+    if (encounters.isEmpty()) return
+    val context = LocalContext.current
+
+    Spacer(modifier = Modifier.height(16.dp))
+    HorizontalDivider()
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = "Last Encounters",
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    encounters.forEach { encounter ->
+        EncounterRow(encounter) {
+            val mapUri = Uri.parse("geo:${encounter.latitude},${encounter.longitude}?q=${encounter.latitude},${encounter.longitude}")
+            val intent = Intent(Intent.ACTION_VIEW, mapUri)
+            context.startActivity(intent)
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+private fun EncounterRow(encounter: EncounterRecord, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Place,
+            contentDescription = "Location",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                    .format(Date(encounter.timestamp)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = encounter.locationName.ifBlank {
+                    "%.5f, %.5f".format(encounter.latitude, encounter.longitude)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Icon(
+            imageVector = if (encounter.source == "camera") Icons.Default.PhotoCamera else Icons.Default.CameraAlt,
+            contentDescription = encounter.source,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 

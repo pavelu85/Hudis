@@ -1,13 +1,17 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.add_face
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.ml.shubham0204.facenet_android.data.EncounterDB
 import com.ml.shubham0204.facenet_android.domain.AppException
 import com.ml.shubham0204.facenet_android.domain.ImageVectorUseCase
 import com.ml.shubham0204.facenet_android.domain.PersonUseCase
+import com.ml.shubham0204.facenet_android.domain.getGpsFromUri
+import com.ml.shubham0204.facenet_android.domain.reverseGeocode
 import com.ml.shubham0204.facenet_android.presentation.components.setProgressDialogText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +22,8 @@ import org.koin.android.annotation.KoinViewModel
 class AddFaceScreenViewModel(
     private val personUseCase: PersonUseCase,
     private val imageVectorUseCase: ImageVectorUseCase,
+    private val encounterDB: EncounterDB,
+    private val context: Context,
 ) : ViewModel() {
     val personNameState: MutableState<String> = mutableStateOf("")
     val notesState: MutableState<String> = mutableStateOf("")
@@ -42,15 +48,18 @@ class AddFaceScreenViewModel(
                     notes = notesState.value,
                     profilePhotoPath = profilePath,
                 )
-            selectedImageURIs.value.forEach {
+            selectedImageURIs.value.forEach { uri ->
                 imageVectorUseCase
-                    .addImage(id, personNameState.value, it)
+                    .addImage(id, personNameState.value, uri)
                     .onFailure {
                         val errorMessage = (it as AppException).errorCode.message
                         setProgressDialogText(errorMessage)
                     }.onSuccess {
                         numImagesProcessed.value += 1
                         setProgressDialogText("Processed ${numImagesProcessed.value} image(s)")
+                        getGpsFromUri(context, uri)?.let { (lat, lon) ->
+                            encounterDB.addEncounter(id, lat, lon, "photo", reverseGeocode(context, lat, lon))
+                        }
                     }
             }
             isProcessingImages.value = false

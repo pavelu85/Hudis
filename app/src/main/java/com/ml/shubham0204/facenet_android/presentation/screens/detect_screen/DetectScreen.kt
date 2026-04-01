@@ -5,8 +5,8 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.annotation.OptIn
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -73,6 +73,7 @@ import org.koin.androidx.compose.koinViewModel
 private val cameraPermissionStatus = mutableStateOf(false)
 private val cameraFacing = mutableIntStateOf(CameraSelector.LENS_FACING_BACK)
 private lateinit var cameraPermissionLauncher: ManagedActivityResultLauncher<String, Boolean>
+private lateinit var locationPermissionLauncher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>
 
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +84,27 @@ fun DetectScreen(
 ) {
     val viewModel: DetectScreenViewModel = koinViewModel()
     val context = LocalContext.current
+
+    // Request location permission silently at startup (needed for encounter location tracking)
+    locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* result ignored — location is optional */ }
+    LaunchedEffect(Unit) {
+        val hasLocation = ActivityCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+        ActivityCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasLocation) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                )
+            )
+        }
+    }
 
     // Gallery image picker
     val galleryLauncher =

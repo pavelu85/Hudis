@@ -1,5 +1,6 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.edit_face
 
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableIntStateOf
@@ -7,19 +8,27 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ml.shubham0204.facenet_android.data.EncounterDB
+import com.ml.shubham0204.facenet_android.data.EncounterRecord
 import com.ml.shubham0204.facenet_android.domain.AppException
 import com.ml.shubham0204.facenet_android.domain.ImageVectorUseCase
 import com.ml.shubham0204.facenet_android.domain.PersonUseCase
+import com.ml.shubham0204.facenet_android.domain.getGpsFromUri
+import com.ml.shubham0204.facenet_android.domain.reverseGeocode
 import com.ml.shubham0204.facenet_android.presentation.components.setProgressDialogText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 
 @KoinViewModel
 class EditFaceScreenViewModel(
     private val personUseCase: PersonUseCase,
     private val imageVectorUseCase: ImageVectorUseCase,
+    private val encounterDB: EncounterDB,
+    private val context: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -37,12 +46,26 @@ class EditFaceScreenViewModel(
     val isProcessingImages: MutableState<Boolean> = mutableStateOf(false)
     val numImagesProcessed: MutableState<Int> = mutableIntStateOf(0)
 
+    // Loaded on IO thread to avoid blocking composition
+    val encounters: MutableState<List<EncounterRecord>> = mutableStateOf(emptyList())
+
     init {
         personUseCase.getById(personId)?.let { record ->
             personNameState.value = record.personName
             notesState.value = record.notes
             profilePhotoPath.value = record.profilePhotoPath
             numImages.value = record.numImages
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = encounterDB.getLastFive(personId)
+            withContext(Dispatchers.Main) { encounters.value = result }
+        }
+    }
+
+    fun refreshEncounters() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = encounterDB.getLastFive(personId)
+            withContext(Dispatchers.Main) { encounters.value = result }
         }
     }
 
@@ -70,6 +93,9 @@ class EditFaceScreenViewModel(
                     }.onSuccess {
                         numImagesProcessed.value += 1
                         setProgressDialogText("Processed ${numImagesProcessed.value} image(s)")
+                        getGpsFromUri(context, uri)?.let { (lat, lon) ->
+                            encounterDB.addEncounter(personId, lat, lon, "photo", reverseGeocode(context, lat, lon))
+                        }
                     }
             }
             if (numImagesProcessed.value > 0) {
@@ -87,6 +113,7 @@ class EditFaceScreenViewModel(
             }
             selectedImageURIs.value = emptyList()
             isProcessingImages.value = false
+            refreshEncounters()
         }
     }
 }

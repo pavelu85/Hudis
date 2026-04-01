@@ -11,16 +11,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ml.shubham0204.facenet_android.AppConfig
+import com.ml.shubham0204.facenet_android.data.EncounterDB
 import com.ml.shubham0204.facenet_android.data.RecognitionMetrics
 import com.ml.shubham0204.facenet_android.data.ResultsHolder
 import com.ml.shubham0204.facenet_android.data.SettingsStore
 import com.ml.shubham0204.facenet_android.domain.AutoCaptureResult
 import com.ml.shubham0204.facenet_android.domain.ImageVectorUseCase
 import com.ml.shubham0204.facenet_android.domain.PersonUseCase
+import com.ml.shubham0204.facenet_android.domain.getCurrentLocation
+import com.ml.shubham0204.facenet_android.domain.reverseGeocode
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 
 @KoinViewModel
@@ -29,6 +35,7 @@ class DetectScreenViewModel(
     val imageVectorUseCase: ImageVectorUseCase,
     val settingsStore: SettingsStore,
     private val resultsHolder: ResultsHolder,
+    private val encounterDB: EncounterDB,
     private val context: Context,
 ) : ViewModel() {
     private val KEY_SETTINGS_CAMERA_FACING = "camera_facing"
@@ -103,14 +110,42 @@ class DetectScreenViewModel(
     }
 
     fun flushSeenPersons() {
-        val now = System.currentTimeMillis()
-        seenPersonIds.forEach { personUseCase.updateLastSeen(it, now) }
+        val ids = seenPersonIds.toSet()
         seenPersonIds.clear()
+        if (ids.isEmpty()) return
+        val now = System.currentTimeMillis()
+        viewModelScope.launch(Dispatchers.IO) {
+            val location = getCurrentLocation(context)
+            val locationName = location?.let { reverseGeocode(context, it.first, it.second) }
+            ids.forEach { personID ->
+                personUseCase.updateLastSeen(personID, now)
+                if (location != null && locationName != null) {
+                    encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName)
+                }
+            }
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
-        flushSeenPersons()
+        // viewModelScope is already cancelled at this point, so use a fresh scope with
+        // NonCancellable to ensure the flush completes even as the ViewModel is destroyed.
+        val ids = seenPersonIds.toSet()
+        seenPersonIds.clear()
+        if (ids.isEmpty()) return
+        val now = System.currentTimeMillis()
+        CoroutineScope(Dispatchers.IO).launch {
+            withContext(NonCancellable) {
+                val location = getCurrentLocation(context)
+                val locationName = location?.let { reverseGeocode(context, it.first, it.second) } ?: ""
+                ids.forEach { personID ->
+                    personUseCase.updateLastSeen(personID, now)
+                    if (location != null) {
+                        encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName)
+                    }
+                }
+            }
+        }
     }
 
     fun togglePause() {

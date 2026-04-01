@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import org.koin.core.annotation.Single
 
 @Single
@@ -37,10 +38,11 @@ class PersonDB {
             .build().count().toInt()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun getAll(): Flow<MutableList<PersonRecord>> =
+    fun getAll(): Flow<List<PersonRecord>> =
         personBox
             .query(PersonRecord_.personID.notNull())
             .build()
             .flow()
+            .map { it.toList() }   // defensive copy — ObjectBox may reuse the MutableList internally
             .flowOn(Dispatchers.IO)
 }

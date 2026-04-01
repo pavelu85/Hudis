@@ -1,9 +1,11 @@
 package com.ml.shubham0204.facenet_android.domain
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
 import com.ml.shubham0204.facenet_android.AppConfig
+import com.ml.shubham0204.facenet_android.data.EncounterDB
 import com.ml.shubham0204.facenet_android.data.FaceImageRecord
 import com.ml.shubham0204.facenet_android.data.ImagesVectorDB
 import com.ml.shubham0204.facenet_android.data.MatchCandidate
@@ -24,6 +26,8 @@ class ImageVectorUseCase(
     private val personDB: PersonDB,
     private val faceNet: FaceNet,
     private val personUseCase: PersonUseCase,
+    private val encounterDB: EncounterDB,
+    private val context: Context,
 ) {
     data class FaceRecognitionResult(
         val personName: String,
@@ -250,7 +254,19 @@ class ImageVectorUseCase(
         onProgress(imageUris.size, imageUris.size, "Saving results…")
         var matchedCount = 0
 
+        // Pre-cache GPS coords and reverse-geocoded names per photo index
+        val gpsCache = mutableMapOf<Int, Pair<Double, Double>?>()
+        val nameCache = mutableMapOf<Int, String>()
+        fun gpsForPhoto(index: Int): Pair<Double, Double>? =
+            gpsCache.getOrPut(index) { getGpsFromUri(context, imageUris[index]) }
+        fun nameForPhoto(index: Int): String =
+            nameCache.getOrPut(index) {
+                gpsForPhoto(index)?.let { (lat, lon) -> reverseGeocode(context, lat, lon) } ?: ""
+                // reverseGeocode is non-null; the ?: "" only triggers if gpsForPhoto is null
+            }
+
         // D1: Add embeddings to existing persons
+        val recordedEncounters = mutableSetOf<Pair<Long, Int>>() // personID to photoIndex
         for (res in resolutions) {
             if (res !is BatchFaceResolution.ExistingPerson) continue
             imagesVectorDB.addFaceImageRecord(
@@ -258,6 +274,13 @@ class ImageVectorUseCase(
             )
             personUseCase.incrementImageCount(res.personID, 1)
             matchedCount++
+            val key = Pair(res.personID, res.face.sourcePhotoIndex)
+            if (key !in recordedEncounters) {
+                gpsForPhoto(res.face.sourcePhotoIndex)?.let { (lat, lon) ->
+                    encounterDB.addEncounter(res.personID, lat, lon, "photo", nameForPhoto(res.face.sourcePhotoIndex))
+                }
+                recordedEncounters.add(key)
+            }
         }
 
         // D2: Create new Unknown N persons for each cluster
@@ -274,6 +297,13 @@ class ImageVectorUseCase(
                 imagesVectorDB.addFaceImageRecord(
                     FaceImageRecord(personID = newPersonID, personName = newName, faceEmbedding = face.embedding)
                 )
+                val key = Pair(newPersonID, face.sourcePhotoIndex)
+                if (key !in recordedEncounters) {
+                    gpsForPhoto(face.sourcePhotoIndex)?.let { (lat, lon) ->
+                        encounterDB.addEncounter(newPersonID, lat, lon, "photo", nameForPhoto(face.sourcePhotoIndex))
+                    }
+                    recordedEncounters.add(key)
+                }
             }
         }
 

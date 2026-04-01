@@ -125,6 +125,9 @@ dependencies {
     // MLKit Face Detection
     implementation("com.google.mlkit:face-detection:16.1.7")
 
+    // Location services for encounter tracking
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

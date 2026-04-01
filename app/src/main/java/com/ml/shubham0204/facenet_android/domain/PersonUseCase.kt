@@ -3,6 +3,7 @@ package com.ml.shubham0204.facenet_android.domain
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import com.ml.shubham0204.facenet_android.data.EncounterDB
 import com.ml.shubham0204.facenet_android.data.PersonDB
 import com.ml.shubham0204.facenet_android.data.PersonRecord
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +13,7 @@ import java.io.File
 @Single
 class PersonUseCase(
     private val personDB: PersonDB,
+    private val encounterDB: EncounterDB,
     private val context: Context,
 ) {
     fun addPerson(
@@ -31,10 +33,12 @@ class PersonUseCase(
         )
 
     fun removePerson(id: Long) {
+        personDB.getById(id)?.profilePhotoPath?.let { File(it).delete() }
+        encounterDB.removeAllForPerson(id)
         personDB.removePerson(id)
     }
 
-    fun getAll(): Flow<List<PersonRecord>> = personDB.getAll()
+    fun getAll(): Flow<List<PersonRecord>> = personDB.getAll()  // immutable snapshot per emission
 
     fun getCount(): Long = personDB.getCount()
 

@@ -39,6 +39,19 @@ data class PersonRecord(
     var lastSeenTime: Long = 0,
 )
 
+@Entity
+data class EncounterRecord(
+    @Id var id: Long = 0,
+    @Index var personID: Long = 0,
+    var latitude: Double = 0.0,
+    var longitude: Double = 0.0,
+    var timestamp: Long = 0L,
+    // "camera" for live detection, "photo" for EXIF-sourced location
+    var source: String = "",
+    // Reverse-geocoded human-readable location (street + city, or landmark)
+    var locationName: String = "",
+)
+
 // Represents a single top-N recognition match candidate
 data class MatchCandidate(
     val personID: Long,
