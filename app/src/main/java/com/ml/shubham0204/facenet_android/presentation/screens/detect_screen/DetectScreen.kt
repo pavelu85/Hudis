@@ -34,7 +34,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -112,6 +111,27 @@ fun DetectScreen(
                         )
                     },
                     actions = {
+                        val isProcessing by remember { viewModel.isProcessingGalleryImage }
+                        IconButton(
+                            onClick = {
+                                galleryLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                )
+                            },
+                            enabled = !isProcessing,
+                        ) {
+                            if (isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Image,
+                                    contentDescription = "Identify from Gallery",
+                                )
+                            }
+                        }
                         IconButton(onClick = onOpenFaceListClick) {
                             Icon(
                                 imageVector = Icons.Default.Face,
@@ -127,24 +147,6 @@ fun DetectScreen(
                     },
                 )
             },
-            floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        galleryLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
-                    },
-                    icon = {
-                        val isProcessing by remember { viewModel.isProcessingGalleryImage }
-                        if (isProcessing) {
-                            CircularProgressIndicator(modifier = Modifier.padding(4.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(imageVector = Icons.Default.Image, contentDescription = null)
-                        }
-                    },
-                    text = { Text("Identify from Gallery") },
-                )
-            },
         ) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding)) { ScreenUI(viewModel) }
         }
@@ -157,27 +159,27 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
         Camera(viewModel)
         DelayedVisibility(viewModel.getNumPeople() > 0) {
             val metrics by remember { viewModel.faceDetectionMetricsState }
-            Column {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 8.dp, top = 4.dp)
+                    .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+            ) {
                 Text(
                     text = "Recognition on ${viewModel.getNumPeople()} face(s)",
                     color = Color.White,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
                 )
-                Spacer(modifier = Modifier.weight(1f))
                 metrics?.let {
                     Text(
                         text =
                             "face detection: ${it.timeFaceDetection} ms" +
                                 "\nface embedding: ${it.timeFaceEmbedding} ms" +
-                                "\nvector search: ${it.timeVectorSearch} ms\n" +
-                                "spoof detection: ${it.timeFaceSpoofDetection} ms",
-                        color = Color.White,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 24.dp),
-                        textAlign = TextAlign.Center,
+                                "\nvector search: ${it.timeVectorSearch} ms" +
+                                "\nspoof detection: ${it.timeFaceSpoofDetection} ms",
+                        color = Color.White.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }
@@ -199,8 +201,10 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
         val isPaused by remember { viewModel.isPaused }
         if (isPaused) {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(
                     text = "Paused — tap to resume",
