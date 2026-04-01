@@ -258,11 +258,24 @@ private fun CandidateCard(rank: Int, candidate: MatchCandidate) {
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (candidate.lastSeenTime > 0 && !DateUtils.isToday(candidate.lastSeenTime)) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+                val lastSeenText = if (candidate.lastSeenTime > 0) {
+                    "Last seen: ${DateUtils.getRelativeTimeSpanString(
+                        candidate.lastSeenTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
+                    )}"
+                } else {
+                    "Never seen"
+                }
+                Text(
+                    text = lastSeenText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (candidate.addTime > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Last seen: ${DateUtils.getRelativeTimeSpanString(
-                            candidate.lastSeenTime, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS
+                        text = "First seen: ${DateUtils.getRelativeTimeSpanString(
+                            candidate.addTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
                         )}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

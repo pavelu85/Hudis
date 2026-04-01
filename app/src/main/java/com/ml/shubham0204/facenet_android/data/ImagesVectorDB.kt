@@ -115,6 +115,7 @@ class ImagesVectorDB {
                     profilePhotoPath = person.profilePhotoPath,
                     similarity = sim,
                     lastSeenTime = person.lastSeenTime,
+                    addTime = person.addTime,
                 )
             }
     }

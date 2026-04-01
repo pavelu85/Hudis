@@ -34,6 +34,7 @@ class ImageVectorUseCase(
         val notes: String = "",
         val similarity: Float = 0f,
         val lastSeenTime: Long = 0,
+        val addTime: Long = 0,
     )
 
     // Add the person's image to the database
@@ -108,6 +109,7 @@ class ImageVectorUseCase(
                         notes = person?.notes ?: "",
                         similarity = distance,
                         lastSeenTime = person?.lastSeenTime ?: 0,
+                        addTime = person?.addTime ?: 0,
                     ),
                 )
             } else {

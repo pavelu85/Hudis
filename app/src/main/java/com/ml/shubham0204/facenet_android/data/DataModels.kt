@@ -49,6 +49,8 @@ data class MatchCandidate(
     val similarity: Float,
     // time when this person was last identified (0 if never)
     val lastSeenTime: Long = 0,
+    // time when this person was first added
+    val addTime: Long = 0,
 )
 
 data class RecognitionMetrics(

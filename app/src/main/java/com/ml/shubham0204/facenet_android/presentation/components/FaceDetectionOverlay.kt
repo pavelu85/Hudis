@@ -224,7 +224,7 @@ class FaceDetectionOverlay(
                         viewModel.recordSeenPerson(result.personID)
                     }
                     boundingBoxTransform.mapRect(box)
-                    predictions.add(Prediction(box, personName, result.notes, result.similarity, result.lastSeenTime))
+                    predictions.add(Prediction(box, personName, result.notes, result.similarity, result.lastSeenTime, result.addTime))
                 }
                 withContext(Dispatchers.Main) {
                     viewModel.faceDetectionMetricsState.value = metrics
@@ -242,6 +242,7 @@ class FaceDetectionOverlay(
         var notes: String = "",
         var similarity: Float = 0f,
         var lastSeenTime: Long = 0,
+        var addTime: Long = 0,
     )
 
     inner class BoundingBoxOverlay(
@@ -285,9 +286,14 @@ class FaceDetectionOverlay(
 
                 val lines = mutableListOf(pred.label)
                 if (pred.similarity > 0f) lines.add("${(pred.similarity * 100).toInt()}%")
-                if (pred.lastSeenTime > 0 && !DateUtils.isToday(pred.lastSeenTime)) {
+                if (pred.lastSeenTime > 0) {
                     lines.add("Last seen: ${DateUtils.getRelativeTimeSpanString(
-                        pred.lastSeenTime, System.currentTimeMillis(), DateUtils.DAY_IN_MILLIS
+                        pred.lastSeenTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
+                    )}")
+                }
+                if (pred.addTime > 0) {
+                    lines.add("First seen: ${DateUtils.getRelativeTimeSpanString(
+                        pred.addTime, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
                     )}")
                 }
                 if (pred.notes.isNotEmpty()) lines.add(pred.notes)
