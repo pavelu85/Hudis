@@ -52,6 +52,7 @@ import org.koin.androidx.compose.koinViewModel
 fun FaceListScreen(
     onNavigateBack: (() -> Unit),
     onAddFaceClick: (() -> Unit),
+    onItemClick: (Long) -> Unit,
 ) {
     HudisTheme {
         Scaffold(
@@ -79,7 +80,7 @@ fun FaceListScreen(
         ) { innerPadding ->
             val viewModel: FaceListScreenViewModel = koinViewModel()
             Column(modifier = Modifier.padding(innerPadding)) {
-                ScreenUI(viewModel)
+                ScreenUI(viewModel, onItemClick)
                 AppAlertDialog()
             }
         }
@@ -87,18 +88,27 @@ fun FaceListScreen(
 }
 
 @Composable
-private fun ScreenUI(viewModel: FaceListScreenViewModel) {
+private fun ScreenUI(viewModel: FaceListScreenViewModel, onItemClick: (Long) -> Unit) {
     val faces by viewModel.personFlow.collectAsState(emptyList())
-    LazyColumn { items(faces) { FaceListItem(it) { viewModel.removeFace(it.personID) } } }
+    LazyColumn {
+        items(faces) { person ->
+            FaceListItem(
+                personRecord = person,
+                onItemClick = { onItemClick(person.personID) },
+                onRemoveFaceClick = { viewModel.removeFace(person.personID) },
+            )
+        }
+    }
 }
 
 @Composable
 private fun FaceListItem(
     personRecord: PersonRecord,
-    onRemoveFaceClick: (() -> Unit),
+    onItemClick: () -> Unit,
+    onRemoveFaceClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().background(Color.White).padding(12.dp),
+        modifier = Modifier.fillMaxWidth().clickable { onItemClick() }.background(Color.White).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Profile photo thumbnail

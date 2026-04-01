@@ -31,8 +31,10 @@ class AddFaceScreenViewModel(
     fun addImages() {
         isProcessingImages.value = true
         CoroutineScope(Dispatchers.Default).launch {
-            // Copy profile photo to private storage before inserting the record
-            val profilePath = profilePhotoUri.value?.let { personUseCase.saveProfilePhoto(it) }
+            // Copy profile photo to private storage before inserting the record.
+            // If no profile photo was explicitly chosen, fall back to the first face image.
+            val effectiveProfileUri = profilePhotoUri.value ?: selectedImageURIs.value.firstOrNull()
+            val profilePath = effectiveProfileUri?.let { personUseCase.saveProfilePhoto(it) }
             val id =
                 personUseCase.addPerson(
                     name = personNameState.value,

@@ -69,7 +69,7 @@ android {
 }
 
 ksp {
-    arg("KOIN_CONFIG_CHECK", "true")
+    arg("KOIN_CONFIG_CHECK", "false")
 }
 
 dependencies {

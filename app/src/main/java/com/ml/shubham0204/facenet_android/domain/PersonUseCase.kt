@@ -1,7 +1,6 @@
 package com.ml.shubham0204.facenet_android.domain
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import com.ml.shubham0204.facenet_android.data.PersonDB
 import com.ml.shubham0204.facenet_android.data.PersonRecord
@@ -37,6 +36,24 @@ class PersonUseCase(
     fun getAll(): Flow<List<PersonRecord>> = personDB.getAll()
 
     fun getCount(): Long = personDB.getCount()
+
+    fun getById(personID: Long): PersonRecord? = personDB.getById(personID)
+
+    fun updatePerson(personID: Long, name: String, notes: String, newProfilePhotoUri: Uri? = null) {
+        val existing = personDB.getById(personID) ?: return
+        val newProfilePath = if (newProfilePhotoUri != null) {
+            existing.profilePhotoPath?.let { File(it).delete() }
+            saveProfilePhoto(newProfilePhotoUri)
+        } else {
+            existing.profilePhotoPath
+        }
+        personDB.addPerson(existing.copy(personName = name, notes = notes, profilePhotoPath = newProfilePath))
+    }
+
+    fun incrementImageCount(personID: Long, count: Int) {
+        val existing = personDB.getById(personID) ?: return
+        personDB.addPerson(existing.copy(numImages = existing.numImages + count))
+    }
 
     // Copies the photo at the given content URI to app private storage and returns the absolute path.
     // Storing the absolute path avoids content-URI expiry across app restarts.
