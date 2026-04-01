@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.ml.shubham0204.facenet_android"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.ml.shubham0204.facenet_android"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 34
         versionCode = 1
         versionName = "0.0.1"
 
