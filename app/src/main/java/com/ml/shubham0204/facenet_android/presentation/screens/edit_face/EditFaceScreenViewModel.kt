@@ -75,6 +75,15 @@ class EditFaceScreenViewModel(
             if (numImagesProcessed.value > 0) {
                 personUseCase.incrementImageCount(personId, numImagesProcessed.value)
                 numImages.value += numImagesProcessed.value
+                if (profilePhotoPath.value == null && newProfilePhotoUri.value == null) {
+                    personUseCase.updatePerson(
+                        personID = personId,
+                        name = personNameState.value,
+                        notes = notesState.value,
+                        newProfilePhotoUri = selectedImageURIs.value.first(),
+                    )
+                    profilePhotoPath.value = personUseCase.getById(personId)?.profilePhotoPath
+                }
             }
             selectedImageURIs.value = emptyList()
             isProcessingImages.value = false
