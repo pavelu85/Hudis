@@ -24,3 +24,9 @@ captures/
 
 # Secrets
 google-services.json
+
+# Claude Code (local config — machine-specific paths and permissions)
+.claude/
+
+# Kotlin incremental compilation cache
+.kotlin/
