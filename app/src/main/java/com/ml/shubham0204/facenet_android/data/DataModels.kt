@@ -50,6 +50,8 @@ data class EncounterRecord(
     var source: String = "",
     // Reverse-geocoded human-readable location (street + city, or landmark)
     var locationName: String? = "",
+    // cosine similarity at the time of detection (0 if not available)
+    var matchPercentage: Float = 0f,
 )
 
 // Represents a single top-N recognition match candidate

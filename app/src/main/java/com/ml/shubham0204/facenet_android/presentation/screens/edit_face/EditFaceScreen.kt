@@ -295,6 +295,13 @@ private fun EncounterRow(encounter: EncounterRecord, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
+        if (encounter.matchPercentage > 0f) {
+            Text(
+                text = "${(encounter.matchPercentage * 100).toInt()}%",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
         Icon(
             imageVector = if (encounter.source == "camera") Icons.Default.PhotoCamera else Icons.Default.CameraAlt,
             contentDescription = encounter.source,

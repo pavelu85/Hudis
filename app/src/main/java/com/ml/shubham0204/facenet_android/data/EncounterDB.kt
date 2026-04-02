@@ -7,7 +7,7 @@ class EncounterDB {
 
     private val box = ObjectBoxStore.store.boxFor(EncounterRecord::class.java)
 
-    fun addEncounter(personID: Long, lat: Double, lon: Double, source: String, locationName: String = "") {
+    fun addEncounter(personID: Long, lat: Double, lon: Double, source: String, locationName: String = "", matchPercentage: Float = 0f) {
         box.put(
             EncounterRecord(
                 personID = personID,
@@ -16,6 +16,7 @@ class EncounterDB {
                 timestamp = System.currentTimeMillis(),
                 source = source,
                 locationName = locationName,
+                matchPercentage = matchPercentage,
             )
         )
         pruneToLatestFive(personID)

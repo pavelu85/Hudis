@@ -215,7 +215,7 @@ class ImageVectorUseCase(
         for (face in extractedFaces) {
             val candidates = imagesVectorDB.getTopNCandidates(face.embedding, allPersons, topN = 1, threshold = threshold)
             if (candidates.isNotEmpty() && candidates[0].similarity >= threshold) {
-                resolutions.add(BatchFaceResolution.ExistingPerson(face, candidates[0].personID, candidates[0].personName))
+                resolutions.add(BatchFaceResolution.ExistingPerson(face, candidates[0].personID, candidates[0].personName, candidates[0].similarity))
             } else {
                 resolutions.add(BatchFaceResolution.NewCluster(face, clusterIndex = -1))
             }
@@ -277,7 +277,7 @@ class ImageVectorUseCase(
             val key = Pair(res.personID, res.face.sourcePhotoIndex)
             if (key !in recordedEncounters) {
                 gpsForPhoto(res.face.sourcePhotoIndex)?.let { (lat, lon) ->
-                    encounterDB.addEncounter(res.personID, lat, lon, "photo", nameForPhoto(res.face.sourcePhotoIndex))
+                    encounterDB.addEncounter(res.personID, lat, lon, "photo", nameForPhoto(res.face.sourcePhotoIndex), res.similarity)
                 }
                 recordedEncounters.add(key)
             }

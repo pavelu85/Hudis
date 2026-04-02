@@ -221,7 +221,7 @@ class FaceDetectionOverlay(
                         personName = "$personName (Spoof: ${result.spoofResult.score})"
                     }
                     if (result.similarity >= AppConfig.LAST_SEEN_MIN_CONFIDENCE && result.personID > 0) {
-                        viewModel.recordSeenPerson(result.personID)
+                        viewModel.recordSeenPerson(result.personID, result.similarity)
                     }
                     // Auto-Monitor: auto-save unrecognized faces when the toggle is ON
                     if (viewModel.isAutoMonitorEnabled.value

@@ -103,24 +103,28 @@ class DetectScreenViewModel(
         }
     }
 
-    private val seenPersonIds = mutableSetOf<Long>()
+    // Maps personID -> best similarity seen in the current flush window
+    private val seenPersons = mutableMapOf<Long, Float>()
 
-    fun recordSeenPerson(personID: Long) {
-        seenPersonIds.add(personID)
+    fun recordSeenPerson(personID: Long, similarity: Float) {
+        val current = seenPersons[personID]
+        if (current == null || similarity > current) {
+            seenPersons[personID] = similarity
+        }
     }
 
     fun flushSeenPersons() {
-        val ids = seenPersonIds.toSet()
-        seenPersonIds.clear()
-        if (ids.isEmpty()) return
+        val persons = seenPersons.toMap()
+        seenPersons.clear()
+        if (persons.isEmpty()) return
         val now = System.currentTimeMillis()
         viewModelScope.launch(Dispatchers.IO) {
             val location = getCurrentLocation(context)
             val locationName = location?.let { reverseGeocode(context, it.first, it.second) }
-            ids.forEach { personID ->
+            persons.forEach { (personID, similarity) ->
                 personUseCase.updateLastSeen(personID, now)
                 if (location != null && locationName != null) {
-                    encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName)
+                    encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName, similarity)
                 }
             }
         }
@@ -130,18 +134,18 @@ class DetectScreenViewModel(
         super.onCleared()
         // viewModelScope is already cancelled at this point, so use a fresh scope with
         // NonCancellable to ensure the flush completes even as the ViewModel is destroyed.
-        val ids = seenPersonIds.toSet()
-        seenPersonIds.clear()
-        if (ids.isEmpty()) return
+        val persons = seenPersons.toMap()
+        seenPersons.clear()
+        if (persons.isEmpty()) return
         val now = System.currentTimeMillis()
         CoroutineScope(Dispatchers.IO).launch {
             withContext(NonCancellable) {
                 val location = getCurrentLocation(context)
                 val locationName = location?.let { reverseGeocode(context, it.first, it.second) } ?: ""
-                ids.forEach { personID ->
+                persons.forEach { (personID, similarity) ->
                     personUseCase.updateLastSeen(personID, now)
                     if (location != null) {
-                        encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName)
+                        encounterDB.addEncounter(personID, location.first, location.second, "camera", locationName, similarity)
                     }
                 }
             }

@@ -13,6 +13,7 @@ sealed class BatchFaceResolution {
         val face: ExtractedFace,
         val personID: Long,
         val personName: String,
+        val similarity: Float,
     ) : BatchFaceResolution()
 
     data class NewCluster(
