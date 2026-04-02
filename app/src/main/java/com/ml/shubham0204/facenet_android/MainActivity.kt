@@ -2,10 +2,18 @@ package com.ml.shubham0204.facenet_android
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,6 +43,21 @@ class MainActivity : ComponentActivity() {
                     AutoMonitorScreen(onNavigateBack = { navHostController.navigateUp() })
                 }
                 composable("detect") {
+                    var showExitDialog by remember { mutableStateOf(false) }
+                    BackHandler { showExitDialog = true }
+                    if (showExitDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showExitDialog = false },
+                            title = { Text("Quit app?") },
+                            text = { Text("Are you sure you want to exit?") },
+                            confirmButton = {
+                                TextButton(onClick = { finish() }) { Text("Quit") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showExitDialog = false }) { Text("Cancel") }
+                            },
+                        )
+                    }
                     DetectScreen(
                         onOpenFaceListClick = { navHostController.navigate("face-list") },
                         onNavigateToResults = { navHostController.navigate("results") },

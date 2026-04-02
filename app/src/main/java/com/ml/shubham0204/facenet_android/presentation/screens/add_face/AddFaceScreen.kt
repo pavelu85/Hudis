@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -221,10 +222,12 @@ private fun ImageReadProgressDialog(
     if (isProcessing) {
         showProgressDialog()
     } else {
-        if (numImagesProcessed > 0) {
-            onNavigateBack()
-            Toast.makeText(context, "Added to database", Toast.LENGTH_SHORT).show()
-        }
         hideProgressDialog()
+    }
+    LaunchedEffect(isProcessing) {
+        if (!isProcessing && numImagesProcessed > 0) {
+            Toast.makeText(context, "Added to database", Toast.LENGTH_SHORT).show()
+            onNavigateBack()
+        }
     }
 }
