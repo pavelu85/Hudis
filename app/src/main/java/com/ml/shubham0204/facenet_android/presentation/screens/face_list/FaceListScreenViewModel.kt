@@ -122,6 +122,9 @@ class FaceListScreenViewModel(
             personUseCase.mergePersons(keepId, removeIds, name, notes, photoPath)
             mergeDialogState.value = null
             clearSelection()
+            if (similarPairsState.value != null) {
+                findSimilarPersons()
+            }
         }
     }
 

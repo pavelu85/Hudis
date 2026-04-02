@@ -9,6 +9,15 @@
 > Download the APK from the [Releases](https://github.com/shubham0204/OnDevice-Face-Recognition-Android/releases)
 
 - [On-Device Face Recognition In Android ](#on-device-face-recognition-in-android)
+    * [User Guide](#user-guide)
+        + [Detect (Home Screen)](#detect-home-screen)
+        + [Results Screen](#results-screen)
+        + [Face List](#face-list)
+        + [Add Face](#add-face)
+        + [Edit Face](#edit-face)
+        + [Find Duplicates](#find-duplicates)
+        + [Merge Dialog](#merge-dialog)
+        + [Auto-Monitor & Batch Import](#auto-monitor--batch-import)
     * [Updates](#updates)
     * [Goals](#goals)
     * [Setup](#setup)
@@ -26,6 +35,117 @@
         + [How does this project differ from my earlier `FaceRecognition_With_FaceNet_Android` project?](#how-does-this-project-differ-from-my-earlier-facerecognition_with_facenet_android-project)
             - [Similarities](#similarities)
             - [Differences](#differences)
+
+## User Guide
+
+Hudis is an on-device face recognition app. Build a personal database of faces, identify people through your camera or photos, and track when and where you've seen them — all without sending data to the cloud.
+
+### Detect (Home Screen)
+
+The live camera view is the main screen. Point your camera at a face to identify it.
+
+- **Tap the screen** — pause/resume detection
+- **Pinch to zoom** — or use the **1×, 2×, 5×** preset buttons
+- **Camera flip icon** — switch between front and back camera
+- **Gallery icon** — pick a photo from your gallery to identify a face in it
+- **Auto-Monitor toggle** — when enabled, unknown faces seen by the camera are automatically saved for later review
+- **Metrics bar** — shows processing times (detection, embedding, search, spoof check) in milliseconds
+
+When a face is recognized, you're taken to the **Results** screen.
+
+### Results Screen
+
+Shows the top matching candidates from your database.
+
+- Each candidate shows a **name**, **confidence bar**, and **match percentage**
+- Color coding: green (75%+), yellow (65–75%), orange (below 65%)
+- Notes preview and last-seen time are shown per candidate
+- **"First detection!" badge** appears when someone is seen for the first time
+- **No match found?** — tap **Add as new person** to create a new entry
+
+### Face List
+
+Your full database of people. Access it via the person icon in the Detect screen.
+
+**Search & Sort:**
+- Use the **search bar** to filter by name or notes
+- Sort by **Name**, **Last Seen**, or **Date Added** — tap the sort button again to reverse direction
+
+**Per-person actions:**
+- **Tap** a person to open and edit their profile
+- **Long-press** to enter selection mode
+- **Delete icon** to remove a person (confirmation required)
+
+**Bulk actions (selection mode):**
+- Long-press any person to enter selection mode, then tap others to add them
+- **Select All** — selects everyone currently shown
+- **Merge** — combine two or more selected people into one record
+- **Delete** — remove all selected people (confirmation required)
+- **✕** — exit selection mode
+
+**Menu (⋮):**
+- **Batch Import** — import photos from your gallery to build up the database
+- **Find Duplicates** — scan for people who might be the same person
+
+### Add Face
+
+Tap the **+** button on the Face List to add a new person.
+
+1. Tap the **profile photo circle** to set a photo (optional)
+2. Enter the person's **name** (required)
+3. Optionally add **notes**
+4. Tap **Choose Photos** to select one or more face images from your gallery
+5. Tap **Add to Database** — the app processes all selected images and stores the face embeddings
+
+More images = better recognition accuracy.
+
+### Edit Face
+
+Tap any person in the Face List to edit their profile.
+
+- Change their **name**, **notes**, or **profile photo**
+- Add more face images with **Choose Photos** → **Add to Database**
+- View their **encounter history** — a list of every time they were detected, with date/time, location (tap to open in maps), match confidence, and source (camera or gallery)
+- Tap **Save** to apply name/notes/photo changes
+
+### Find Duplicates
+
+Accessible from the Face List menu (⋮). Scans your database for people who look similar and may be the same person.
+
+- Results appear as **pair cards** showing both people's avatars, names, and a similarity percentage
+- **Tap a card** to see a side-by-side photo comparison
+- **Tap Merge** to open the Merge dialog
+- After merging, the list **automatically refreshes** — remaining duplicates stay visible
+
+### Merge Dialog
+
+Combines two or more people into a single record.
+
+1. Select the **primary person** (the record that survives) — defaults to the one with the most images
+2. Edit the **name** if needed
+3. Notes from all people are **automatically combined**
+4. If multiple profile photos exist, pick which one to keep
+5. Tap **Merge** to confirm
+
+All face images, encounters, and data from the removed records are transferred to the surviving person.
+
+### Auto-Monitor & Batch Import
+
+**Auto-Monitor** (toggle in Detect screen): When active, any face the camera sees that doesn't match someone in your database is automatically saved and attributed to a new or existing person over time.
+
+**Batch Import** (Face List menu → Batch Import):
+
+1. Tap **Select Photos** to choose multiple images from your gallery
+2. Tap **Start Processing**
+3. The app scans every photo for faces and matches them against your database
+4. A summary shows faces matched, new people created, and photos skipped (no face detected)
+
+> **Tips:**
+> - Add multiple photos per person from different angles and lighting for best accuracy
+> - Use **Find Duplicates** after a batch import to clean up accidental duplicates
+> - All processing happens on-device — no internet connection needed
+
+---
 
 ## Updates
 
