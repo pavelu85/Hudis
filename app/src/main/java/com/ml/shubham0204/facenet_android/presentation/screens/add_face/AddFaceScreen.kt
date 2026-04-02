@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ml.shubham0204.facenet_android.presentation.components.AppProgressDialog
@@ -55,7 +56,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddFaceScreen(onNavigateBack: (() -> Unit)) {
+fun AddFaceScreen(onNavigateBack: (Long) -> Unit) {
     HudisTheme {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -65,7 +66,7 @@ fun AddFaceScreen(onNavigateBack: (() -> Unit)) {
                         Text(text = "Add Faces", style = MaterialTheme.typography.headlineSmall)
                     },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = { onNavigateBack(0L) }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Default.ArrowBack,
                                 contentDescription = "Navigate Back",
@@ -86,17 +87,20 @@ fun AddFaceScreen(onNavigateBack: (() -> Unit)) {
 
 @Composable
 private fun ScreenUI(viewModel: AddFaceScreenViewModel) {
+    val focusManager = LocalFocusManager.current
     val pickFaceImagesLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickMultipleVisualMedia(),
         ) {
             viewModel.selectedImageURIs.value = it
+            focusManager.clearFocus()
         }
     val pickProfilePhotoLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
         ) { uri ->
             uri?.let { viewModel.profilePhotoUri.value = it }
+            focusManager.clearFocus()
         }
 
     var personName by remember { viewModel.personNameState }
@@ -160,8 +164,12 @@ private fun ScreenUI(viewModel: AddFaceScreenViewModel) {
             modifier = Modifier.fillMaxWidth(),
             value = personName,
             onValueChange = { personName = it },
-            label = { Text(text = "Enter the person's name") },
+            label = { Text(text = "Person's name *") },
             singleLine = true,
+            isError = personName.isEmpty(),
+            supportingText = if (personName.isEmpty()) {
+                { Text("Required") }
+            } else null,
         )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
@@ -188,9 +196,10 @@ private fun ScreenUI(viewModel: AddFaceScreenViewModel) {
                 Icon(imageVector = Icons.Default.Photo, contentDescription = "Choose photos")
                 Text(text = "Choose photos")
             }
-            DelayedVisibility(viewModel.selectedImageURIs.value.isNotEmpty()) {
-                Button(onClick = { viewModel.addImages() }) { Text(text = "Add to database") }
-            }
+            Button(
+                enabled = viewModel.selectedImageURIs.value.isNotEmpty() && viewModel.personNameState.value.isNotEmpty(),
+                onClick = { viewModel.addImages() },
+            ) { Text(text = "Add to database") }
         }
         DelayedVisibility(viewModel.selectedImageURIs.value.isNotEmpty()) {
             Text(
@@ -213,7 +222,7 @@ private fun ImagesGrid(viewModel: AddFaceScreenViewModel) {
 @Composable
 private fun ImageReadProgressDialog(
     viewModel: AddFaceScreenViewModel,
-    onNavigateBack: () -> Unit,
+    onNavigateBack: (Long) -> Unit,
 ) {
     val isProcessing by remember { viewModel.isProcessingImages }
     val numImagesProcessed by remember { viewModel.numImagesProcessed }
@@ -227,7 +236,7 @@ private fun ImageReadProgressDialog(
     LaunchedEffect(isProcessing) {
         if (!isProcessing && numImagesProcessed > 0) {
             Toast.makeText(context, "Added to database", Toast.LENGTH_SHORT).show()
-            onNavigateBack()
+            onNavigateBack(viewModel.newPersonId.value ?: 0L)
         }
     }
 }

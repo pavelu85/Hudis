@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,6 +47,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +81,8 @@ fun FaceListScreen(
     onNavigateBack: (() -> Unit),
     onAddFaceClick: (() -> Unit),
     onItemClick: (Long) -> Unit,
+    scrollToPersonId: Long? = null,
+    onScrollHandled: () -> Unit = {},
 ) {
     val viewModel: FaceListScreenViewModel = koinViewModel()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
@@ -130,7 +134,7 @@ fun FaceListScreen(
         ) { innerPadding ->
             BackHandler(enabled = isSelectionMode) { viewModel.clearSelection() }
             Column(modifier = Modifier.padding(innerPadding)) {
-                ScreenUI(viewModel, isSelectionMode, selectedIds, onItemClick)
+                ScreenUI(viewModel, isSelectionMode, selectedIds, onItemClick, scrollToPersonId, onScrollHandled)
                 AppAlertDialog()
             }
         }
@@ -167,10 +171,23 @@ private fun ScreenUI(
     isSelectionMode: Boolean,
     selectedIds: Set<Long>,
     onItemClick: (Long) -> Unit,
+    scrollToPersonId: Long? = null,
+    onScrollHandled: () -> Unit = {},
 ) {
     val faces by viewModel.displayedPersons.collectAsState()
     val currentSort by viewModel.sortOrder.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(scrollToPersonId, faces) {
+        if (scrollToPersonId != null && scrollToPersonId != 0L && faces.isNotEmpty()) {
+            val index = faces.indexOfFirst { it.personID == scrollToPersonId }
+            if (index >= 0) {
+                listState.animateScrollToItem(index)
+                onScrollHandled()
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         if (!isSelectionMode) {
@@ -227,7 +244,7 @@ private fun ScreenUI(
                 )
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
+            LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 80.dp)) {
                 items(faces, key = { it.personID }) { person ->
                     FaceListItem(
                         personRecord = person,

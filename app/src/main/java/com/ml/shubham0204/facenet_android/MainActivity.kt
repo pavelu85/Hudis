@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,7 +39,14 @@ class MainActivity : ComponentActivity() {
                 enterTransition = { fadeIn() },
                 exitTransition = { fadeOut() },
             ) {
-                composable("add-face") { AddFaceScreen { navHostController.navigateUp() } }
+                composable("add-face") {
+                    AddFaceScreen { newPersonId ->
+                        navHostController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("scrollToPersonId", newPersonId)
+                        navHostController.navigateUp()
+                    }
+                }
                 composable("auto-monitor") {
                     AutoMonitorScreen(onNavigateBack = { navHostController.navigateUp() })
                 }
@@ -64,11 +72,18 @@ class MainActivity : ComponentActivity() {
                         onOpenAutoMonitor = { navHostController.navigate("auto-monitor") },
                     )
                 }
-                composable("face-list") {
+                composable("face-list") { backStackEntry ->
+                    val scrollToPersonId by backStackEntry.savedStateHandle
+                        .getStateFlow<Long?>("scrollToPersonId", null)
+                        .collectAsState()
                     FaceListScreen(
                         onNavigateBack = { navHostController.navigateUp() },
                         onAddFaceClick = { navHostController.navigate("add-face") },
                         onItemClick = { personId -> navHostController.navigate("edit-face/$personId") },
+                        scrollToPersonId = scrollToPersonId,
+                        onScrollHandled = {
+                            backStackEntry.savedStateHandle.remove<Long>("scrollToPersonId")
+                        },
                     )
                 }
                 composable(

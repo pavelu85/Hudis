@@ -33,6 +33,7 @@ class AddFaceScreenViewModel(
 
     val isProcessingImages: MutableState<Boolean> = mutableStateOf(false)
     val numImagesProcessed: MutableState<Int> = mutableIntStateOf(0)
+    val newPersonId: MutableState<Long?> = mutableStateOf(null)
 
     fun addImages() {
         isProcessingImages.value = true
@@ -48,6 +49,7 @@ class AddFaceScreenViewModel(
                     notes = notesState.value,
                     profilePhotoPath = profilePath,
                 )
+            newPersonId.value = id
             selectedImageURIs.value.forEach { uri ->
                 imageVectorUseCase
                     .addImage(id, personNameState.value, uri)
