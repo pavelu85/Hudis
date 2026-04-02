@@ -129,4 +129,61 @@ class ImagesVectorDB {
                 .toList(),
         )
     }
+
+    // Re-assign all embeddings belonging to fromPersonID over to toPersonID.
+    fun reassignEmbeddings(fromPersonID: Long, toPersonID: Long, toPersonName: String) {
+        val records = imagesBox
+            .query(FaceImageRecord_.personID.equal(fromPersonID))
+            .build()
+            .find()
+        val updated = records.map { it.copy(personID = toPersonID, personName = toPersonName) }
+        imagesBox.put(updated)
+    }
+
+    // Compute per-person embedding centroid, then compare all pairs.
+    // Returns pairs (personA, personB, similarity) above threshold, sorted descending.
+    fun findSimilarPersonPairs(
+        personRecords: List<PersonRecord>,
+        threshold: Float = 0.55f,
+    ): List<Triple<PersonRecord, PersonRecord, Float>> {
+        if (personRecords.size < 2) return emptyList()
+
+        val allRecords = imagesBox.all
+        // Group embeddings by personID
+        val embeddingsByPerson = HashMap<Long, MutableList<FloatArray>>()
+        for (record in allRecords) {
+            embeddingsByPerson.getOrPut(record.personID) { mutableListOf() }.add(record.faceEmbedding)
+        }
+
+        // Compute centroid per person
+        val personMap = personRecords.associateBy { it.personID }
+        val centroids = HashMap<Long, FloatArray>()
+        for ((personID, embeddings) in embeddingsByPerson) {
+            if (personMap[personID] == null) continue
+            val dim = embeddings[0].size
+            val sum = FloatArray(dim)
+            for (emb in embeddings) {
+                for (i in emb.indices) sum[i] += emb[i]
+            }
+            centroids[personID] = FloatArray(dim) { sum[it] / embeddings.size }
+        }
+
+        // Compare all pairs
+        val ids = centroids.keys.toList()
+        val result = mutableListOf<Triple<PersonRecord, PersonRecord, Float>>()
+        for (i in ids.indices) {
+            for (j in i + 1 until ids.size) {
+                val idA = ids[i]
+                val idB = ids[j]
+                val sim = cosineDistance(centroids[idA]!!, centroids[idB]!!)
+                if (sim >= threshold) {
+                    val personA = personMap[idA] ?: continue
+                    val personB = personMap[idB] ?: continue
+                    result.add(Triple(personA, personB, sim))
+                }
+            }
+        }
+        result.sortByDescending { it.third }
+        return result
+    }
 }

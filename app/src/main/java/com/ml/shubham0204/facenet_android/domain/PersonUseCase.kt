@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import com.ml.shubham0204.facenet_android.data.EncounterDB
+import com.ml.shubham0204.facenet_android.data.ImagesVectorDB
 import com.ml.shubham0204.facenet_android.data.PersonDB
 import com.ml.shubham0204.facenet_android.data.PersonRecord
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,7 @@ import java.io.File
 class PersonUseCase(
     private val personDB: PersonDB,
     private val encounterDB: EncounterDB,
+    private val imagesVectorDB: ImagesVectorDB,
     private val context: Context,
 ) {
     fun addPerson(
@@ -77,6 +79,50 @@ class PersonUseCase(
             null
         }
     }
+
+    // Merges removeId into keepId: reassigns embeddings + encounters, updates the kept record,
+    // cleans up the unchosen profile photo, and deletes the removed person record.
+    fun mergePersons(
+        keepId: Long,
+        removeIds: List<Long>,
+        mergedName: String,
+        mergedNotes: String,
+        chosenPhotoPath: String?,
+    ) {
+        val keepRecord = personDB.getById(keepId) ?: return
+        val allPhotoPaths = mutableListOf(keepRecord.profilePhotoPath)
+        var totalImages = keepRecord.numImages
+
+        for (removeId in removeIds) {
+            val removeRecord = personDB.getById(removeId) ?: continue
+            allPhotoPaths.add(removeRecord.profilePhotoPath)
+            totalImages += removeRecord.numImages
+            // 1. Re-assign face embeddings and encounter records
+            imagesVectorDB.reassignEmbeddings(removeId, keepId, mergedName)
+            encounterDB.reassignEncounters(removeId, keepId)
+            // 2. Delete the removed person record only (embeddings + encounters already reassigned)
+            personDB.removePerson(removeId)
+        }
+
+        // 3. Delete all unchosen profile photo files
+        for (path in allPhotoPaths.filterNotNull()) {
+            if (path != chosenPhotoPath) File(path).delete()
+        }
+
+        // 4. Update the surviving person record
+        personDB.addPerson(
+            keepRecord.copy(
+                personName = mergedName,
+                notes = mergedNotes,
+                profilePhotoPath = chosenPhotoPath,
+                numImages = totalImages,
+            )
+        )
+    }
+
+    // Returns person pairs whose embedding centroids exceed the similarity threshold.
+    fun findSimilarPersonPairs(threshold: Float = 0.55f) =
+        imagesVectorDB.findSimilarPersonPairs(personDB.getAllList(), threshold)
 
     // Copies the photo at the given content URI to app private storage and returns the absolute path.
     // Storing the absolute path avoids content-URI expiry across app restarts.

@@ -27,13 +27,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CallMerge
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -87,6 +91,8 @@ fun FaceListScreen(
     val viewModel: FaceListScreenViewModel = koinViewModel()
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
+    val mergeDialogState by viewModel.mergeDialogState.collectAsState()
+    val similarPairsState by viewModel.similarPairsState.collectAsState()
 
     HudisTheme {
         Scaffold(
@@ -96,6 +102,7 @@ fun FaceListScreen(
                     SelectionTopAppBar(
                         selectedCount = selectedIds.size,
                         onSelectAll = { viewModel.selectAll() },
+                        onMerge = { viewModel.showMergeDialogForSelected() },
                         onDelete = {
                             createAlertDialog(
                                 dialogTitle = "Delete ${selectedIds.size} person(s)?",
@@ -121,6 +128,27 @@ fun FaceListScreen(
                                 )
                             }
                         },
+                        actions = {
+                            var menuExpanded by remember { mutableStateOf(false) }
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Find Duplicates") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.CallMerge, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        viewModel.findSimilarPersons()
+                                    },
+                                )
+                            }
+                        },
                     )
                 }
             },
@@ -137,6 +165,29 @@ fun FaceListScreen(
                 ScreenUI(viewModel, isSelectionMode, selectedIds, onItemClick, scrollToPersonId, onScrollHandled)
                 AppAlertDialog()
             }
+
+            // Merge dialog (manual selection or from similar pairs)
+            mergeDialogState?.let { state ->
+                MergeDialog(
+                    state = state,
+                    onConfirm = { keepId, removeIds, name, notes, photoPath ->
+                        viewModel.executeMerge(keepId, removeIds, name, notes, photoPath)
+                    },
+                    onDismiss = { viewModel.dismissMergeDialog() },
+                )
+            }
+
+            // Similar pairs bottom sheet
+            similarPairsState?.let { state ->
+                SimilarPairsBottomSheet(
+                    state = state,
+                    onPairSelected = { a, b, similarity ->
+                        viewModel.dismissSimilarPairs()
+                        viewModel.showMergeDialogForPair(a, b, similarity)
+                    },
+                    onDismiss = { viewModel.dismissSimilarPairs() },
+                )
+            }
         }
     }
 }
@@ -146,6 +197,7 @@ fun FaceListScreen(
 private fun SelectionTopAppBar(
     selectedCount: Int,
     onSelectAll: () -> Unit,
+    onMerge: () -> Unit,
     onDelete: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -154,6 +206,11 @@ private fun SelectionTopAppBar(
         actions = {
             IconButton(onClick = onSelectAll) {
                 Icon(Icons.Default.DoneAll, contentDescription = "Select all")
+            }
+            if (selectedCount >= 2) {
+                IconButton(onClick = onMerge) {
+                    Icon(Icons.Default.CallMerge, contentDescription = "Merge selected")
+                }
             }
             IconButton(onClick = onDelete, enabled = selectedCount > 0) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete selected")

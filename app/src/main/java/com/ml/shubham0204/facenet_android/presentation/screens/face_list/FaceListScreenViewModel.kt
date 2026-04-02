@@ -16,6 +16,16 @@ import org.koin.android.annotation.KoinViewModel
 
 enum class SortOrder { NAME_ASC, LAST_SEEN_DESC, DATE_ADDED_DESC }
 
+data class MergeDialogState(
+    val persons: List<PersonRecord>,
+    val similarity: Float = 0f,
+)
+
+data class SimilarPairsState(
+    val pairs: List<Triple<PersonRecord, PersonRecord, Float>>,
+    val isLoading: Boolean,
+)
+
 @KoinViewModel
 class FaceListScreenViewModel(
     val imageVectorUseCase: ImageVectorUseCase,
@@ -42,6 +52,9 @@ class FaceListScreenViewModel(
 
     val isSelectionMode = MutableStateFlow(false)
     val selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+
+    val mergeDialogState = MutableStateFlow<MergeDialogState?>(null)
+    val similarPairsState = MutableStateFlow<SimilarPairsState?>(null)
 
     fun enterSelectionMode(id: Long) {
         selectedIds.value = setOf(id)
@@ -79,5 +92,43 @@ class FaceListScreenViewModel(
             personUseCase.removePerson(id)
             imageVectorUseCase.removeImages(id)
         }
+    }
+
+    // Opens merge dialog for all currently selected persons (≥2).
+    fun showMergeDialogForSelected() {
+        val ids = selectedIds.value.toList()
+        if (ids.size < 2) return
+        val allPersons = displayedPersons.value
+        val persons = ids.mapNotNull { id -> allPersons.firstOrNull { it.personID == id } }
+        if (persons.size < 2) return
+        mergeDialogState.value = MergeDialogState(persons)
+    }
+
+    fun showMergeDialogForPair(a: PersonRecord, b: PersonRecord, similarity: Float) {
+        mergeDialogState.value = MergeDialogState(listOf(a, b), similarity)
+    }
+
+    fun dismissMergeDialog() {
+        mergeDialogState.value = null
+    }
+
+    fun executeMerge(keepId: Long, removeIds: List<Long>, name: String, notes: String, photoPath: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            personUseCase.mergePersons(keepId, removeIds, name, notes, photoPath)
+            mergeDialogState.value = null
+            clearSelection()
+        }
+    }
+
+    fun findSimilarPersons() {
+        similarPairsState.value = SimilarPairsState(emptyList(), isLoading = true)
+        viewModelScope.launch(Dispatchers.IO) {
+            val pairs = personUseCase.findSimilarPersonPairs()
+            similarPairsState.value = SimilarPairsState(pairs, isLoading = false)
+        }
+    }
+
+    fun dismissSimilarPairs() {
+        similarPairsState.value = null
     }
 }

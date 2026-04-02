@@ -34,6 +34,16 @@ class EncounterDB {
         box.removeByIds(ids.toList())
     }
 
+    // Move all encounter records from fromPersonID to toPersonID, then prune to 5.
+    fun reassignEncounters(fromPersonID: Long, toPersonID: Long) {
+        val records = box.query(EncounterRecord_.personID.equal(fromPersonID))
+            .build().find()
+        if (records.isEmpty()) return
+        val updated = records.map { it.copy(personID = toPersonID) }
+        box.put(updated)
+        pruneToLatestFive(toPersonID)
+    }
+
     private fun pruneToLatestFive(personID: Long) {
         val all = box.query(EncounterRecord_.personID.equal(personID))
             .orderDesc(EncounterRecord_.timestamp)
