@@ -80,7 +80,6 @@ private lateinit var locationPermissionLauncher: ManagedActivityResultLauncher<A
 fun DetectScreen(
     onOpenFaceListClick: () -> Unit,
     onNavigateToResults: () -> Unit,
-    onOpenAutoMonitor: () -> Unit,
 ) {
     val viewModel: DetectScreenViewModel = koinViewModel()
     val context = LocalContext.current
@@ -147,13 +146,6 @@ fun DetectScreen(
                                 imageVector = if (isAutoMonitor) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = if (isAutoMonitor) "Auto-Monitor ON" else "Auto-Monitor OFF",
                                 tint = if (isAutoMonitor) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Unspecified,
-                            )
-                        }
-                        // Open batch Auto-Monitor screen
-                        IconButton(onClick = onOpenAutoMonitor) {
-                            Icon(
-                                imageVector = Icons.Default.ImageSearch,
-                                contentDescription = "Batch Auto-Monitor",
                             )
                         }
                         IconButton(

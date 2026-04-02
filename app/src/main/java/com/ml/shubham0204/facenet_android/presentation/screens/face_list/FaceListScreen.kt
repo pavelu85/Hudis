@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CardDefaults
@@ -85,6 +86,7 @@ fun FaceListScreen(
     onNavigateBack: (() -> Unit),
     onAddFaceClick: (() -> Unit),
     onItemClick: (Long) -> Unit,
+    onOpenAutoMonitor: () -> Unit,
     scrollToPersonId: Long? = null,
     onScrollHandled: () -> Unit = {},
 ) {
@@ -137,6 +139,16 @@ fun FaceListScreen(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Batch Import") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.ImageSearch, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onOpenAutoMonitor()
+                                    },
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Find Duplicates") },
                                     leadingIcon = {

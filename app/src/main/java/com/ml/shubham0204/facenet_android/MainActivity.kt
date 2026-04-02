@@ -69,7 +69,6 @@ class MainActivity : ComponentActivity() {
                     DetectScreen(
                         onOpenFaceListClick = { navHostController.navigate("face-list") },
                         onNavigateToResults = { navHostController.navigate("results") },
-                        onOpenAutoMonitor = { navHostController.navigate("auto-monitor") },
                     )
                 }
                 composable("face-list") { backStackEntry ->
@@ -80,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { navHostController.navigateUp() },
                         onAddFaceClick = { navHostController.navigate("add-face") },
                         onItemClick = { personId -> navHostController.navigate("edit-face/$personId") },
+                        onOpenAutoMonitor = { navHostController.navigate("auto-monitor") },
                         scrollToPersonId = scrollToPersonId,
                         onScrollHandled = {
                             backStackEntry.savedStateHandle.remove<Long>("scrollToPersonId")
