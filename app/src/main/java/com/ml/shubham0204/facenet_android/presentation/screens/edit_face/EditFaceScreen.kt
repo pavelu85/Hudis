@@ -288,9 +288,9 @@ private fun EncounterRow(encounter: EncounterRecord, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = encounter.locationName.ifBlank {
+                text = encounter.locationName?.ifBlank {
                     "%.5f, %.5f".format(encounter.latitude, encounter.longitude)
-                },
+                } ?: "%.5f, %.5f".format(encounter.latitude, encounter.longitude),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )

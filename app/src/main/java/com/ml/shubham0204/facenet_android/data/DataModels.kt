@@ -49,7 +49,7 @@ data class EncounterRecord(
     // "camera" for live detection, "photo" for EXIF-sourced location
     var source: String = "",
     // Reverse-geocoded human-readable location (street + city, or landmark)
-    var locationName: String = "",
+    var locationName: String? = "",
 )
 
 // Represents a single top-N recognition match candidate
