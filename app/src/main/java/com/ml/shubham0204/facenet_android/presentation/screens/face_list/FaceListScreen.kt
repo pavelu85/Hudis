@@ -1,8 +1,10 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.face_list
 
 import android.text.format.DateUtils
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +27,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -73,83 +80,138 @@ fun FaceListScreen(
     onAddFaceClick: (() -> Unit),
     onItemClick: (Long) -> Unit,
 ) {
+    val viewModel: FaceListScreenViewModel = koinViewModel()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
+    val selectedIds by viewModel.selectedIds.collectAsState()
+
     HudisTheme {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(text = "Face List", style = MaterialTheme.typography.headlineSmall)
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                                contentDescription = "Navigate Back",
+                if (isSelectionMode) {
+                    SelectionTopAppBar(
+                        selectedCount = selectedIds.size,
+                        onSelectAll = { viewModel.selectAll() },
+                        onDelete = {
+                            createAlertDialog(
+                                dialogTitle = "Delete ${selectedIds.size} person(s)?",
+                                dialogText = "This will permanently remove the selected people and all their face data.",
+                                dialogPositiveButtonText = "Delete",
+                                onPositiveButtonClick = { viewModel.removeSelectedFaces() },
+                                dialogNegativeButtonText = "Cancel",
+                                onNegativeButtonClick = {},
                             )
-                        }
-                    },
-                )
+                        },
+                        onCancel = { viewModel.clearSelection() },
+                    )
+                } else {
+                    TopAppBar(
+                        title = {
+                            Text(text = "Face List", style = MaterialTheme.typography.headlineSmall)
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onNavigateBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Default.ArrowBack,
+                                    contentDescription = "Navigate Back",
+                                )
+                            }
+                        },
+                    )
+                }
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = onAddFaceClick) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add a new face")
+                if (!isSelectionMode) {
+                    FloatingActionButton(onClick = onAddFaceClick) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add a new face")
+                    }
                 }
             },
         ) { innerPadding ->
-            val viewModel: FaceListScreenViewModel = koinViewModel()
+            BackHandler(enabled = isSelectionMode) { viewModel.clearSelection() }
             Column(modifier = Modifier.padding(innerPadding)) {
-                ScreenUI(viewModel, onItemClick)
+                ScreenUI(viewModel, isSelectionMode, selectedIds, onItemClick)
                 AppAlertDialog()
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScreenUI(viewModel: FaceListScreenViewModel, onItemClick: (Long) -> Unit) {
+private fun SelectionTopAppBar(
+    selectedCount: Int,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text("$selectedCount selected") },
+        actions = {
+            IconButton(onClick = onSelectAll) {
+                Icon(Icons.Default.DoneAll, contentDescription = "Select all")
+            }
+            IconButton(onClick = onDelete, enabled = selectedCount > 0) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete selected")
+            }
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Close, contentDescription = "Cancel selection")
+            }
+        },
+    )
+}
+
+@Composable
+private fun ScreenUI(
+    viewModel: FaceListScreenViewModel,
+    isSelectionMode: Boolean,
+    selectedIds: Set<Long>,
+    onItemClick: (Long) -> Unit,
+) {
     val faces by viewModel.displayedPersons.collectAsState()
     val currentSort by viewModel.sortOrder.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                viewModel.searchQuery.value = it
-            },
-            placeholder = { Text("Search…") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = {
-                        searchQuery = ""
-                        viewModel.searchQuery.value = ""
-                    }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear search")
+        if (!isSelectionMode) {
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                    viewModel.searchQuery.value = it
+                },
+                placeholder = { Text("Search…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            viewModel.searchQuery.value = ""
+                        }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
                     }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            singleLine = true,
-            shape = RoundedCornerShape(50),
-        )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                singleLine = true,
+                shape = RoundedCornerShape(50),
+            )
 
-        // Sort chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        ) {
-            items(SortOrder.entries) { order ->
-                FilterChip(
-                    selected = currentSort == order,
-                    onClick = { viewModel.sortOrder.value = order },
-                    label = { Text(sortLabels[order]!!) },
-                )
+            // Sort chips
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                items(SortOrder.entries) { order ->
+                    FilterChip(
+                        selected = currentSort == order,
+                        onClick = { viewModel.sortOrder.value = order },
+                        label = { Text(sortLabels[order]!!) },
+                    )
+                }
             }
         }
 
@@ -166,10 +228,16 @@ private fun ScreenUI(viewModel: FaceListScreenViewModel, onItemClick: (Long) -> 
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
-                items(faces) { person ->
+                items(faces, key = { it.personID }) { person ->
                     FaceListItem(
                         personRecord = person,
-                        onItemClick = { onItemClick(person.personID) },
+                        isSelectionMode = isSelectionMode,
+                        isSelected = selectedIds.contains(person.personID),
+                        onItemClick = {
+                            if (isSelectionMode) viewModel.toggleSelection(person.personID)
+                            else onItemClick(person.personID)
+                        },
+                        onLongPress = { viewModel.enterSelectionMode(person.personID) },
                         onRemoveFaceClick = { viewModel.removeFace(person.personID) },
                     )
                 }
@@ -178,23 +246,39 @@ private fun ScreenUI(viewModel: FaceListScreenViewModel, onItemClick: (Long) -> 
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FaceListItem(
     personRecord: PersonRecord,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
     onItemClick: () -> Unit,
+    onLongPress: () -> Unit,
     onRemoveFaceClick: () -> Unit,
 ) {
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clickable { onItemClick() },
+            .combinedClickable(onClick = onItemClick, onLongClick = onLongPress),
         shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+                             else CardDefaults.elevatedCardColors().containerColor,
+        ),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (isSelectionMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onItemClick() },
+                    modifier = Modifier.padding(end = 4.dp),
+                )
+            }
+
             // Avatar
             if (personRecord.profilePhotoPath != null) {
                 AsyncImage(
@@ -272,24 +356,26 @@ private fun FaceListItem(
                 }
             }
 
-            IconButton(
-                onClick = {
-                    createAlertDialog(
-                        dialogTitle = "Remove person",
-                        dialogText =
-                            "Are you sure to remove this person from the database. The face for this person will not " +
-                                "be detected in realtime",
-                        dialogPositiveButtonText = "Remove",
-                        onPositiveButtonClick = onRemoveFaceClick,
-                        dialogNegativeButtonText = "Cancel",
-                        onNegativeButtonClick = {},
+            if (!isSelectionMode) {
+                IconButton(
+                    onClick = {
+                        createAlertDialog(
+                            dialogTitle = "Remove person",
+                            dialogText =
+                                "Are you sure to remove this person from the database. The face for this person will not " +
+                                    "be detected in realtime",
+                            dialogPositiveButtonText = "Remove",
+                            onPositiveButtonClick = onRemoveFaceClick,
+                            dialogNegativeButtonText = "Cancel",
+                            onNegativeButtonClick = {},
+                        )
+                    },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Remove face",
                     )
-                },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Clear,
-                    contentDescription = "Remove face",
-                )
+                }
             }
         }
     }

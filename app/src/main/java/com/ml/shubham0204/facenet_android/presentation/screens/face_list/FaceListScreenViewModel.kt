@@ -40,6 +40,40 @@ class FaceListScreenViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val isSelectionMode = MutableStateFlow(false)
+    val selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+
+    fun enterSelectionMode(id: Long) {
+        selectedIds.value = setOf(id)
+        isSelectionMode.value = true
+    }
+
+    fun toggleSelection(id: Long) {
+        val updated = selectedIds.value.toMutableSet()
+        if (!updated.add(id)) updated.remove(id)
+        selectedIds.value = updated
+        if (updated.isEmpty()) clearSelection()
+    }
+
+    fun selectAll() {
+        selectedIds.value = displayedPersons.value.map { it.personID }.toSet()
+    }
+
+    fun clearSelection() {
+        selectedIds.value = emptySet()
+        isSelectionMode.value = false
+    }
+
+    fun removeSelectedFaces() {
+        viewModelScope.launch(Dispatchers.IO) {
+            selectedIds.value.forEach { id ->
+                personUseCase.removePerson(id)
+                imageVectorUseCase.removeImages(id)
+            }
+            clearSelection()
+        }
+    }
+
     fun removeFace(id: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             personUseCase.removePerson(id)
