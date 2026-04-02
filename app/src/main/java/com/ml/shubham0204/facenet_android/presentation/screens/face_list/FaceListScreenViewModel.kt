@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 
-enum class SortOrder { NAME_ASC, LAST_SEEN_DESC, DATE_ADDED_DESC }
+enum class SortField { NAME, LAST_SEEN, DATE_ADDED }
+enum class SortDirection { ASC, DESC }
+data class SortState(val field: SortField, val direction: SortDirection)
 
 data class MergeDialogState(
     val persons: List<PersonRecord>,
@@ -33,20 +35,23 @@ class FaceListScreenViewModel(
 ) : ViewModel() {
 
     val searchQuery = MutableStateFlow("")
-    val sortOrder = MutableStateFlow(SortOrder.NAME_ASC)
+    val sortState = MutableStateFlow(SortState(SortField.NAME, SortDirection.ASC))
 
     val displayedPersons: StateFlow<List<PersonRecord>> = combine(
-        personUseCase.getAll(), searchQuery, sortOrder
+        personUseCase.getAll(), searchQuery, sortState
     ) { list, query, sort ->
         val filtered = if (query.isBlank()) list
             else list.filter {
                 it.personName.contains(query, ignoreCase = true) ||
                 it.notes.contains(query, ignoreCase = true)
             }
-        when (sort) {
-            SortOrder.NAME_ASC        -> filtered.sortedBy { it.personName.lowercase() }
-            SortOrder.LAST_SEEN_DESC  -> filtered.sortedByDescending { it.lastSeenTime }
-            SortOrder.DATE_ADDED_DESC -> filtered.sortedByDescending { it.addTime }
+        when (sort.field) {
+            SortField.NAME       -> if (sort.direction == SortDirection.ASC) filtered.sortedBy { it.personName.lowercase() }
+                                    else filtered.sortedByDescending { it.personName.lowercase() }
+            SortField.LAST_SEEN  -> if (sort.direction == SortDirection.DESC) filtered.sortedByDescending { it.lastSeenTime }
+                                    else filtered.sortedBy { it.lastSeenTime }
+            SortField.DATE_ADDED -> if (sort.direction == SortDirection.DESC) filtered.sortedByDescending { it.addTime }
+                                    else filtered.sortedBy { it.addTime }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

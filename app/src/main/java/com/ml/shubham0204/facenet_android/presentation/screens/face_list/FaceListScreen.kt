@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CardDefaults
@@ -74,10 +76,15 @@ import com.ml.shubham0204.facenet_android.presentation.theme.HudisTheme
 import org.koin.androidx.compose.koinViewModel
 
 private val sortLabels = mapOf(
-    SortOrder.NAME_ASC        to "Name",
-    SortOrder.LAST_SEEN_DESC  to "Last Seen",
+    SortField.NAME       to "Name",
+    SortField.LAST_SEEN  to "Last Seen",
+    SortField.DATE_ADDED to "Date Added",
+)
 
-    SortOrder.DATE_ADDED_DESC to "Newest",
+private val defaultSortDirection = mapOf(
+    SortField.NAME       to SortDirection.ASC,
+    SortField.LAST_SEEN  to SortDirection.DESC,
+    SortField.DATE_ADDED to SortDirection.DESC,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -244,7 +251,7 @@ private fun ScreenUI(
     onScrollHandled: () -> Unit = {},
 ) {
     val faces by viewModel.displayedPersons.collectAsState()
-    val currentSort by viewModel.sortOrder.collectAsState()
+    val currentSort by viewModel.sortState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -256,6 +263,10 @@ private fun ScreenUI(
                 onScrollHandled()
             }
         }
+    }
+
+    LaunchedEffect(currentSort) {
+        listState.scrollToItem(0)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -291,11 +302,26 @@ private fun ScreenUI(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             ) {
-                items(SortOrder.entries) { order ->
+                items(SortField.entries) { field ->
+                    val isSelected = currentSort.field == field
                     FilterChip(
-                        selected = currentSort == order,
-                        onClick = { viewModel.sortOrder.value = order },
-                        label = { Text(sortLabels[order]!!) },
+                        selected = isSelected,
+                        onClick = {
+                            viewModel.sortState.value = if (isSelected) {
+                                currentSort.copy(direction = if (currentSort.direction == SortDirection.ASC) SortDirection.DESC else SortDirection.ASC)
+                            } else {
+                                SortState(field, defaultSortDirection[field]!!)
+                            }
+                        },
+                        label = { Text(sortLabels[field]!!) },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = if (currentSort.direction == SortDirection.ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                    contentDescription = if (currentSort.direction == SortDirection.ASC) "Ascending" else "Descending",
+                                )
+                            }
+                        } else null,
                     )
                 }
             }
