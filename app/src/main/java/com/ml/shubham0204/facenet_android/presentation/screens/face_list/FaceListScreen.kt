@@ -505,10 +505,10 @@ private fun FaceListItem(
 @Composable
 private fun QualityBadge(score: DataQualityScore) {
     val (backgroundColor, textColor) = when (score.label) {
-        "Excellent" -> Color(0xFF1B5E20) to Color(0xFFA5D6A7)
-        "Good"      -> Color(0xFF1A237E) to Color(0xFF90CAF9)
-        "Fair"      -> Color(0xFFE65100) to Color(0xFFFFCC80)
-        else        -> Color(0xFF4A1010) to Color(0xFFEF9A9A) // Poor
+        "Excellent" -> Color(0xFFF1F8E9) to Color(0xFF2E7D32)
+        "Good"      -> Color(0xFFE3F2FD) to Color(0xFF1565C0)
+        "Fair"      -> Color(0xFFFFFDE7) to Color(0xFFE65100)
+        else        -> Color(0xFFFFEBEE) to Color(0xFFC62828) // Poor
     }
     val percent = (score.score * 100).toInt()
     Text(
