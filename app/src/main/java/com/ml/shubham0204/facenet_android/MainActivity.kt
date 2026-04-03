@@ -25,6 +25,7 @@ import com.ml.shubham0204.facenet_android.presentation.screens.auto_monitor.Auto
 import com.ml.shubham0204.facenet_android.presentation.screens.detect_screen.DetectScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.edit_face.EditFaceScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.face_list.FaceListScreen
+import com.ml.shubham0204.facenet_android.presentation.screens.learn_face.LearnFaceScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.results.ResultsScreen
 
 class MainActivity : ComponentActivity() {
@@ -89,8 +90,18 @@ class MainActivity : ComponentActivity() {
                 composable(
                     route = "edit-face/{personId}",
                     arguments = listOf(navArgument("personId") { type = NavType.LongType }),
+                ) { backStackEntry ->
+                    val personId = backStackEntry.arguments!!.getLong("personId")
+                    EditFaceScreen(
+                        onNavigateBack = { navHostController.navigateUp() },
+                        onLearnFaceClick = { navHostController.navigate("learn-face/$personId") },
+                    )
+                }
+                composable(
+                    route = "learn-face/{personId}",
+                    arguments = listOf(navArgument("personId") { type = NavType.LongType }),
                 ) {
-                    EditFaceScreen { navHostController.navigateUp() }
+                    LearnFaceScreen(onNavigateBack = { navHostController.navigateUp() })
                 }
                 composable("results") {
                     ResultsScreen(

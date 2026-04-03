@@ -3,6 +3,7 @@ package com.ml.shubham0204.facenet_android.presentation.screens.face_list
 import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -68,8 +69,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
 import com.ml.shubham0204.facenet_android.data.PersonRecord
+import com.ml.shubham0204.facenet_android.domain.DataQualityScore
 import com.ml.shubham0204.facenet_android.presentation.components.AppAlertDialog
 import com.ml.shubham0204.facenet_android.presentation.components.createAlertDialog
 import com.ml.shubham0204.facenet_android.presentation.theme.HudisTheme
@@ -251,6 +254,7 @@ private fun ScreenUI(
     onScrollHandled: () -> Unit = {},
 ) {
     val faces by viewModel.displayedPersons.collectAsState()
+    val qualityScores by viewModel.qualityScores.collectAsState()
     val currentSort by viewModel.sortState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -343,6 +347,7 @@ private fun ScreenUI(
                 items(faces, key = { it.personID }) { person ->
                     FaceListItem(
                         personRecord = person,
+                        qualityScore = qualityScores[person.personID],
                         isSelectionMode = isSelectionMode,
                         isSelected = selectedIds.contains(person.personID),
                         onItemClick = {
@@ -362,6 +367,7 @@ private fun ScreenUI(
 @Composable
 private fun FaceListItem(
     personRecord: PersonRecord,
+    qualityScore: DataQualityScore?,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     onItemClick: () -> Unit,
@@ -458,6 +464,11 @@ private fun FaceListItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Data quality badge
+                if (qualityScore != null && qualityScore.numEmbeddings > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    QualityBadge(qualityScore)
+                }
                 // "Never seen" badge
                 if (personRecord.lastSeenTime == 0L) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -491,4 +502,23 @@ private fun FaceListItem(
             }
         }
     }
+}
+
+@Composable
+private fun QualityBadge(score: DataQualityScore) {
+    val (backgroundColor, textColor) = when (score.label) {
+        "Excellent" -> Color(0xFF1B5E20) to Color(0xFFA5D6A7)
+        "Good"      -> Color(0xFF1A237E) to Color(0xFF90CAF9)
+        "Fair"      -> Color(0xFFE65100) to Color(0xFFFFCC80)
+        else        -> Color(0xFF4A1010) to Color(0xFFEF9A9A) // Poor
+    }
+    val percent = (score.score * 100).toInt()
+    Text(
+        text = "${score.label}  $percent%",
+        style = MaterialTheme.typography.labelSmall,
+        color = textColor,
+        modifier = Modifier
+            .background(color = backgroundColor, shape = RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
 }

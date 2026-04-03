@@ -7,4 +7,14 @@ object AppConfig {
     // Minimum cosine similarity required to treat two face embeddings as the same identity
     // during Auto-Monitor (batch import and live camera modes). Adjust to tune sensitivity.
     const val IDENTITY_CERTAINTY_THRESHOLD = 0.70f
+
+    // Learning mode: skip embeddings with cosine similarity above this value to any
+    // already-captured embedding (prevents collecting near-duplicate poses)
+    const val LEARNING_MODE_DIVERSITY_THRESHOLD = 0.92f
+
+    // Learning mode: minimum similarity to the target person for a face to be eligible
+    const val LEARNING_MODE_MIN_CONFIDENCE = 0.50f
+
+    // Learning mode: minimum milliseconds between auto-captures to prevent bursts
+    const val LEARNING_MODE_AUTO_CAPTURE_INTERVAL_MS = 2000L
 }

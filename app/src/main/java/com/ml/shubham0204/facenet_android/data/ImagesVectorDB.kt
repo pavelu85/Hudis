@@ -120,6 +120,16 @@ class ImagesVectorDB {
             }
     }
 
+    fun getEmbeddingsForPerson(personID: Long): List<FloatArray> =
+        imagesBox
+            .query(FaceImageRecord_.personID.equal(personID))
+            .build()
+            .find()
+            .map { it.faceEmbedding }
+
+    fun computeQualityScore(personID: Long): com.ml.shubham0204.facenet_android.domain.DataQualityScore =
+        com.ml.shubham0204.facenet_android.domain.DataQualityScore.compute(getEmbeddingsForPerson(personID))
+
     fun removeFaceRecordsWithPersonID(personID: Long) {
         imagesBox.removeByIds(
             imagesBox

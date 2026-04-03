@@ -180,6 +180,23 @@ class ImageVectorUseCase(
     }
 
     // ---------------------------------------------------------------------------
+    // Learning Mode
+    // ---------------------------------------------------------------------------
+
+    fun getPersonEmbeddings(personID: Long): List<FloatArray> =
+        imagesVectorDB.getEmbeddingsForPerson(personID)
+
+    fun getQualityScore(personID: Long): DataQualityScore =
+        imagesVectorDB.computeQualityScore(personID)
+
+    suspend fun addLiveEmbedding(personID: Long, personName: String, embedding: FloatArray) {
+        imagesVectorDB.addFaceImageRecord(
+            FaceImageRecord(personID = personID, personName = personName, faceEmbedding = embedding)
+        )
+        personUseCase.incrementImageCount(personID, 1)
+    }
+
+    // ---------------------------------------------------------------------------
     // Auto-Monitor: Batch photo processing
     // ---------------------------------------------------------------------------
 

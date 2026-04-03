@@ -66,7 +66,7 @@ import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditFaceScreen(onNavigateBack: () -> Unit) {
+fun EditFaceScreen(onNavigateBack: () -> Unit, onLearnFaceClick: () -> Unit = {}) {
     HudisTheme {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -88,7 +88,7 @@ fun EditFaceScreen(onNavigateBack: () -> Unit) {
         ) { innerPadding ->
             val viewModel: EditFaceScreenViewModel = koinViewModel()
             Column(modifier = Modifier.padding(innerPadding)) {
-                ScreenUI(viewModel, onNavigateBack)
+                ScreenUI(viewModel, onNavigateBack, onLearnFaceClick)
                 AddMoreImagesProgressDialog(viewModel)
                 AppAlertDialog()
             }
@@ -97,7 +97,7 @@ fun EditFaceScreen(onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun ScreenUI(viewModel: EditFaceScreenViewModel, onNavigateBack: () -> Unit) {
+private fun ScreenUI(viewModel: EditFaceScreenViewModel, onNavigateBack: () -> Unit, onLearnFaceClick: () -> Unit) {
     val pickFaceImagesLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickMultipleVisualMedia(),
@@ -219,6 +219,13 @@ private fun ScreenUI(viewModel: EditFaceScreenViewModel, onNavigateBack: () -> U
             ) {
                 Text(text = "Save changes")
             }
+        }
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onLearnFaceClick,
+        ) {
+            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Improve Recognition")
+            Text(text = " Improve Recognition")
         }
         DelayedVisibility(viewModel.selectedImageURIs.value.isNotEmpty()) {
             Column {

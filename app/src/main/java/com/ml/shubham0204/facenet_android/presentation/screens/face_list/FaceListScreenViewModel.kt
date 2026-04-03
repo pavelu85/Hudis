@@ -6,12 +6,16 @@ import com.ml.shubham0204.facenet_android.data.PersonRecord
 import com.ml.shubham0204.facenet_android.domain.ImageVectorUseCase
 import com.ml.shubham0204.facenet_android.domain.PersonUseCase
 import kotlinx.coroutines.Dispatchers
+import com.ml.shubham0204.facenet_android.domain.DataQualityScore
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
 
 enum class SortField { NAME, LAST_SEEN, DATE_ADDED }
@@ -54,6 +58,17 @@ class FaceListScreenViewModel(
                                     else filtered.sortedBy { it.addTime }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    // Recomputed on IO whenever the displayed list changes.
+    // Keyed by personID so FaceListItem can look up its own score with no extra plumbing.
+    val qualityScores: StateFlow<Map<Long, DataQualityScore>> = displayedPersons
+        .mapLatest { persons ->
+            withContext(Dispatchers.IO) {
+                persons.associate { it.personID to imageVectorUseCase.getQualityScore(it.personID) }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val isSelectionMode = MutableStateFlow(false)
     val selectedIds = MutableStateFlow<Set<Long>>(emptySet())
