@@ -18,8 +18,10 @@ import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import java.util.concurrent.TimeUnit
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
@@ -79,6 +81,17 @@ class FaceDetectionOverlay(
     fun applyZoom(ratio: Float) {
         if (currentCameraFacing == CameraSelector.LENS_FACING_FRONT) return
         camera?.cameraControl?.setZoomRatio(ratio)
+    }
+
+    fun startFocusAt(x: Float, y: Float) {
+        if (!::previewView.isInitialized) return
+        val cam = camera ?: return
+        val factory = previewView.meteringPointFactory
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+            .setAutoCancelDuration(3, TimeUnit.SECONDS)
+            .build()
+        cam.cameraControl.startFocusAndMetering(action)
     }
 
     fun setPaused(paused: Boolean) {

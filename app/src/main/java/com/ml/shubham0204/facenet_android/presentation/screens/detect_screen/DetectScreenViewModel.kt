@@ -8,6 +8,7 @@ import androidx.camera.core.CameraSelector
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ml.shubham0204.facenet_android.AppConfig
@@ -66,6 +67,10 @@ class DetectScreenViewModel(
     val isProcessingGalleryImage = mutableStateOf(false)
 
     val isPaused = mutableStateOf(false)
+
+    val focusTapEvent = mutableStateOf<Offset?>(null)
+    fun requestFocus(x: Float, y: Float) { focusTapEvent.value = Offset(x, y) }
+    fun clearFocusTap() { focusTapEvent.value = null }
 
     // Auto-Monitor: automatically capture and save unknown faces seen on live camera
     val isAutoMonitorEnabled = mutableStateOf(false)

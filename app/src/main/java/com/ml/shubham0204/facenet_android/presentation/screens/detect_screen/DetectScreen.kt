@@ -51,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,6 +67,7 @@ import com.ml.shubham0204.facenet_android.R
 import com.ml.shubham0204.facenet_android.presentation.components.AppAlertDialog
 import com.ml.shubham0204.facenet_android.presentation.components.DelayedVisibility
 import com.ml.shubham0204.facenet_android.presentation.components.FaceDetectionOverlay
+import com.ml.shubham0204.facenet_android.presentation.components.FocusRingOverlay
 import com.ml.shubham0204.facenet_android.presentation.components.createAlertDialog
 import com.ml.shubham0204.facenet_android.presentation.theme.HudisTheme
 import org.koin.androidx.compose.koinViewModel
@@ -261,7 +263,7 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
                 contentAlignment = Alignment.BottomCenter,
             ) {
                 Text(
-                    text = "Paused — tap to resume",
+                    text = "Paused — long-press to resume",
                     color = Color.White,
                     modifier = Modifier
                         .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
@@ -273,6 +275,7 @@ private fun ScreenUI(viewModel: DetectScreenViewModel) {
         if (!isFront) {
             ZoomControls(viewModel = viewModel)
         }
+        FocusRingOverlay(viewModel = viewModel, modifier = Modifier.fillMaxSize())
     }
 }
 
@@ -297,14 +300,26 @@ private fun Camera(viewModel: DetectScreenViewModel) {
             }
         }
 
+    var overlayRef by remember { mutableStateOf<FaceDetectionOverlay?>(null) }
+
     DelayedVisibility(cameraPermissionStatus.value) {
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures { viewModel.togglePause() }
+                .pointerInput("tap") {
+                    detectTapGestures(
+                        onTap = { offset ->
+                            if (viewModel.isPaused.value) {
+                                viewModel.togglePause()
+                            } else {
+                                viewModel.requestFocus(offset.x, offset.y)
+                                overlayRef?.startFocusAt(offset.x, offset.y)
+                            }
+                        },
+                        onLongPress = { viewModel.togglePause() },
+                    )
                 }
-                .pointerInput(Unit) {
+                .pointerInput("zoom") {
                     detectTransformGestures { _, _, zoom, _ ->
                         val newRatio = (viewModel.currentZoomRatio.floatValue * zoom)
                             .coerceIn(
@@ -315,8 +330,9 @@ private fun Camera(viewModel: DetectScreenViewModel) {
                         viewModel.requestedZoomRatio.floatValue = newRatio
                     }
                 },
-            factory = { FaceDetectionOverlay(lifecycleOwner, context, viewModel) },
+            factory = { FaceDetectionOverlay(lifecycleOwner, context, viewModel).also { overlayRef = it } },
             update = { overlay ->
+                overlayRef = overlay
                 if (overlay.currentCameraFacing != cameraFacing) {
                     overlay.initializeCamera(cameraFacing)
                 }
