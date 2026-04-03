@@ -118,12 +118,12 @@ class DetectScreenViewModel(
         }
     }
 
-    fun flushSeenPersons() {
+    suspend fun flushSeenPersons() {
         val persons = seenPersons.toMap()
         seenPersons.clear()
         if (persons.isEmpty()) return
         val now = System.currentTimeMillis()
-        viewModelScope.launch(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
             val location = getCurrentLocation(context)
             val locationName = location?.let { reverseGeocode(context, it.first, it.second) }
             persons.forEach { (personID, similarity) ->

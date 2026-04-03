@@ -51,7 +51,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -85,6 +87,7 @@ fun DetectScreen(
 ) {
     val viewModel: DetectScreenViewModel = koinViewModel()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // Request location permission silently at startup (needed for encounter location tracking)
     locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -171,8 +174,10 @@ fun DetectScreen(
                             }
                         }
                         IconButton(onClick = {
-                            viewModel.flushSeenPersons()
-                            onOpenFaceListClick()
+                            coroutineScope.launch {
+                                viewModel.flushSeenPersons()
+                                onOpenFaceListClick()
+                            }
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Face,
