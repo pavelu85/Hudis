@@ -133,7 +133,7 @@ fun DetectScreen(
                     title = {
                         val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
                         Text(
-                            text = "${stringResource(id = R.string.app_name)} v${pkg.versionName} (${pkg.longVersionCode})",
+                            text = "${stringResource(id = R.string.app_name)} v${pkg.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pkg)})",
                             style = MaterialTheme.typography.headlineSmall,
                         )
                     },
