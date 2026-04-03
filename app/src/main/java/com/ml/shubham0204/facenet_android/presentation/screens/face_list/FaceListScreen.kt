@@ -256,7 +256,7 @@ private fun ScreenUI(
     val faces by viewModel.displayedPersons.collectAsState()
     val qualityScores by viewModel.qualityScores.collectAsState()
     val currentSort by viewModel.sortState.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val listState = rememberLazyListState()
 
     LaunchedEffect(scrollToPersonId, faces) {
@@ -279,7 +279,6 @@ private fun ScreenUI(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = {
-                    searchQuery = it
                     viewModel.searchQuery.value = it
                 },
                 placeholder = { Text("Search…") },
@@ -287,7 +286,6 @@ private fun ScreenUI(
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = {
-                            searchQuery = ""
                             viewModel.searchQuery.value = ""
                         }) {
                             Icon(Icons.Default.Clear, contentDescription = "Clear search")
