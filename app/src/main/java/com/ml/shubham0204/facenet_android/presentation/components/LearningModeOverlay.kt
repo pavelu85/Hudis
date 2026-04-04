@@ -12,6 +12,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.FrameLayout
 import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -53,6 +54,7 @@ class LearningModeOverlay(
 
     private lateinit var boundingBoxOverlay: BoundingBoxOverlay
     private lateinit var previewView: PreviewView
+    private var camera: Camera? = null
 
     var currentCameraFacing: Int = -1
         private set
@@ -69,6 +71,7 @@ class LearningModeOverlay(
         this.cameraFacing = cameraFacing
         isImageTransformInitialized = false
         isBoundingBoxTransformInitialized = false
+        camera = null
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         val previewView = PreviewView(context)
@@ -90,7 +93,14 @@ class LearningModeOverlay(
                     .build()
                 frameAnalyzer.setAnalyzer(Executors.newSingleThreadExecutor(), analyzer)
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, frameAnalyzer)
+                camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, frameAnalyzer)
+                camera?.cameraInfo?.zoomState?.observe(lifecycleOwner) { state ->
+                    viewModel.minZoomRatio.floatValue = state.minZoomRatio
+                    viewModel.maxZoomRatio.floatValue = state.maxZoomRatio
+                    viewModel.currentZoomRatio.floatValue = state.zoomRatio
+                }
+                val pending = viewModel.requestedZoomRatio.floatValue
+                if (pending != 1f) camera?.cameraControl?.setZoomRatio(pending)
             },
             executor,
         )
@@ -104,6 +114,11 @@ class LearningModeOverlay(
         this.boundingBoxOverlay.setWillNotDraw(false)
         this.boundingBoxOverlay.setZOrderOnTop(true)
         addView(this.boundingBoxOverlay, overlayParams)
+    }
+
+    fun applyZoom(ratio: Float) {
+        if (currentCameraFacing == CameraSelector.LENS_FACING_FRONT) return
+        camera?.cameraControl?.setZoomRatio(ratio)
     }
 
     private val analyzer = ImageAnalysis.Analyzer { image ->

@@ -2,6 +2,7 @@ package com.ml.shubham0204.facenet_android.presentation.screens.learn_face
 
 import android.graphics.Bitmap
 import androidx.camera.core.CameraSelector
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
@@ -38,6 +39,16 @@ class LearnFaceViewModel(
     val lastFrameResult = mutableStateOf<LearningFrameResult>(LearningFrameResult.NoFace)
     val isAutoCapture = mutableStateOf(true)
     val cameraFacing = mutableIntStateOf(CameraSelector.LENS_FACING_BACK)
+
+    val currentZoomRatio = mutableFloatStateOf(1f)
+    val maxZoomRatio = mutableFloatStateOf(1f)
+    val minZoomRatio = mutableFloatStateOf(1f)
+    val requestedZoomRatio = mutableFloatStateOf(1f)
+
+    fun setZoom(ratio: Float) {
+        requestedZoomRatio.floatValue =
+            ratio.coerceIn(minZoomRatio.floatValue, maxZoomRatio.floatValue)
+    }
 
     private val sessionEmbeddings = mutableListOf<FloatArray>()
     private val existingEmbeddingsLoaded = AtomicBoolean(false)
@@ -147,5 +158,7 @@ class LearnFaceViewModel(
         } else {
             CameraSelector.LENS_FACING_BACK
         }
+        requestedZoomRatio.floatValue = 1f
+        currentZoomRatio.floatValue = 1f
     }
 }
