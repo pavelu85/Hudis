@@ -139,9 +139,8 @@ fun DetectScreen(
                 TopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(),
                     title = {
-                        val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
                         Text(
-                            text = "${stringResource(id = R.string.app_name)} v${pkg.versionName} (${androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(pkg)})",
+                            text = stringResource(id = R.string.app_name),
                             style = MaterialTheme.typography.headlineSmall,
                         )
                     },

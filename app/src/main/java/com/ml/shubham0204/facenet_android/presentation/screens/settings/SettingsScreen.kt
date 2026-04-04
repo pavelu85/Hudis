@@ -27,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.pm.PackageInfoCompat
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,6 +209,8 @@ fun SettingsScreen(
             }
 
             // Info Section
+            val context = LocalContext.current
+            val pkg = context.packageManager.getPackageInfo(context.packageName, 0)
             SettingSection(title = "Info") {
                 Column(
                     modifier = Modifier
@@ -215,8 +219,8 @@ fun SettingsScreen(
                 ) {
                     InfoRow("Model", "FaceNet 512-dim")
                     InfoRow("Detector", "MLKit")
-                    InfoRow("App Version", "1.0.0")
-                    InfoRow("Build Number", "1")
+                    InfoRow("App Version", pkg.versionName ?: "unknown")
+                    InfoRow("Build Number", PackageInfoCompat.getLongVersionCode(pkg).toString())
                     InfoRow("Android", "API ${Build.VERSION.SDK_INT}")
                 }
             }
