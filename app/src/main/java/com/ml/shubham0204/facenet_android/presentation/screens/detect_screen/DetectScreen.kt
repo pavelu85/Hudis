@@ -40,6 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -152,7 +153,7 @@ fun DetectScreen(
                             Icon(
                                 imageVector = if (isAutoMonitor) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = if (isAutoMonitor) "Auto-Monitor ON" else "Auto-Monitor OFF",
-                                tint = if (isAutoMonitor) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Unspecified,
+                                tint = if (isAutoMonitor) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                             )
                         }
                         IconButton(
