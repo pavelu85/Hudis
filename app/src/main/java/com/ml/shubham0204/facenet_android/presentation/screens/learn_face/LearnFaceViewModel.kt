@@ -50,7 +50,8 @@ class LearnFaceViewModel(
             ratio.coerceIn(minZoomRatio.floatValue, maxZoomRatio.floatValue)
     }
 
-    private val sessionEmbeddings = mutableListOf<FloatArray>()
+    private val dbEmbeddings = mutableListOf<FloatArray>()      // loaded from DB on first frame
+    private val sessionEmbeddings = mutableListOf<FloatArray>() // captured in this session only
     private val existingEmbeddingsLoaded = AtomicBoolean(false)
     private var lastAutoCaptureTime = 0L
     private var lastGoodEmbedding: FloatArray? = null
@@ -68,13 +69,8 @@ class LearnFaceViewModel(
         val embeddings = withContext(Dispatchers.IO) {
             imageVectorUseCase.getPersonEmbeddings(personID)
         }
-        sessionEmbeddings.addAll(embeddings)
+        dbEmbeddings.addAll(embeddings)
         existingEmbeddingsLoaded.set(true)
-    }
-
-    private fun maxSimilarityToSession(embedding: FloatArray): Float {
-        if (sessionEmbeddings.isEmpty()) return 0f
-        return sessionEmbeddings.maxOf { cosineDistance(embedding, it) }
     }
 
     private suspend fun commitCapture(embedding: FloatArray) {
@@ -110,7 +106,7 @@ class LearnFaceViewModel(
             return LearningFrameResult.WrongPerson.also { lastFrameResult.value = it }
         }
 
-        val allPersonEmbeddings = sessionEmbeddings
+        val allPersonEmbeddings = dbEmbeddings + sessionEmbeddings
         val similarity = if (allPersonEmbeddings.isEmpty()) {
             AppConfig.LEARNING_MODE_MIN_CONFIDENCE  // no prior data — assume match
         } else {
@@ -121,8 +117,18 @@ class LearnFaceViewModel(
             return LearningFrameResult.WrongPerson.also { lastFrameResult.value = it }
         }
 
-        // Diversity check
-        val maxSessionSim = maxSimilarityToSession(embedding)
+        // Hard guard: reject near-exact duplicates of existing DB embeddings
+        if (dbEmbeddings.isNotEmpty()) {
+            val maxDbSim = dbEmbeddings.maxOf { cosineDistance(embedding, it) }
+            if (maxDbSim > AppConfig.LEARNING_MODE_DB_DUPLICATE_THRESHOLD) {
+                lastGoodEmbedding = embedding
+                return LearningFrameResult.TooSimilar(similarity).also { lastFrameResult.value = it }
+            }
+        }
+
+        // Diversity check against this session's captures
+        val maxSessionSim = if (sessionEmbeddings.isEmpty()) 0f
+                            else sessionEmbeddings.maxOf { cosineDistance(embedding, it) }
         if (maxSessionSim > AppConfig.LEARNING_MODE_DIVERSITY_THRESHOLD) {
             lastGoodEmbedding = embedding
             return LearningFrameResult.TooSimilar(similarity).also { lastFrameResult.value = it }

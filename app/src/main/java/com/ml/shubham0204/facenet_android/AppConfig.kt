@@ -8,8 +8,12 @@ object AppConfig {
     // during Auto-Monitor (batch import and live camera modes). Adjust to tune sensitivity.
     const val IDENTITY_CERTAINTY_THRESHOLD = 0.70f
 
+    // Learning mode: reject new embeddings with cosine similarity above this value to any
+    // *existing database* embedding (hard guard against near-exact duplicates across sessions)
+    const val LEARNING_MODE_DB_DUPLICATE_THRESHOLD = 0.97f
+
     // Learning mode: skip embeddings with cosine similarity above this value to any
-    // already-captured embedding (prevents collecting near-duplicate poses)
+    // already-captured embedding in this session (prevents collecting near-duplicate poses)
     const val LEARNING_MODE_DIVERSITY_THRESHOLD = 0.90f
 
     // Learning mode: minimum similarity to the target person for a face to be eligible
