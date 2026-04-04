@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -84,6 +85,7 @@ private lateinit var locationPermissionLauncher: ManagedActivityResultLauncher<A
 fun DetectScreen(
     onOpenFaceListClick: () -> Unit,
     onNavigateToResults: () -> Unit,
+    onOpenSettingsClick: () -> Unit = {},
 ) {
     val viewModel: DetectScreenViewModel = koinViewModel()
     val context = LocalContext.current
@@ -188,6 +190,12 @@ fun DetectScreen(
                             Icon(
                                 imageVector = Icons.Default.Cameraswitch,
                                 contentDescription = "Switch Camera",
+                            )
+                        }
+                        IconButton(onClick = onOpenSettingsClick) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
                             )
                         }
                     },

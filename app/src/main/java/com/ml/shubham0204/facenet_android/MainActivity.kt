@@ -27,6 +27,7 @@ import com.ml.shubham0204.facenet_android.presentation.screens.edit_face.EditFac
 import com.ml.shubham0204.facenet_android.presentation.screens.face_list.FaceListScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.learn_face.LearnFaceScreen
 import com.ml.shubham0204.facenet_android.presentation.screens.results.ResultsScreen
+import com.ml.shubham0204.facenet_android.presentation.screens.settings.SettingsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
                     DetectScreen(
                         onOpenFaceListClick = { navHostController.navigate("face-list") },
                         onNavigateToResults = { navHostController.navigate("results") },
+                        onOpenSettingsClick = { navHostController.navigate("settings") },
                     )
                 }
                 composable("face-list") { backStackEntry ->
@@ -110,6 +112,9 @@ class MainActivity : ComponentActivity() {
                             navHostController.navigate("add-face")
                         },
                     )
+                }
+                composable("settings") {
+                    SettingsScreen(onNavigateBack = { navHostController.navigateUp() })
                 }
             }
         }
