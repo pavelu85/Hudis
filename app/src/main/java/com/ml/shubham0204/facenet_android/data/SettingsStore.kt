@@ -48,7 +48,7 @@ class SettingsStore(
     fun setLastSeenMinConfidence(value: Float) = saveFloat(KEY_LAST_SEEN_MIN_CONFIDENCE, value)
 
     // Learning Mode Settings
-    fun getLearningModeDiversityThreshold(): Float = getFloat(KEY_LEARNING_MODE_DIVERSITY_THRESHOLD, 0.92f)
+    fun getLearningModeDiversityThreshold(): Float = getFloat(KEY_LEARNING_MODE_DIVERSITY_THRESHOLD, 0.90f)
     fun setLearningModeDiversityThreshold(value: Float) = saveFloat(KEY_LEARNING_MODE_DIVERSITY_THRESHOLD, value)
 
     fun getAutoCapureIntervalMs(): Long = getLong(KEY_AUTO_CAPTURE_INTERVAL_MS, 2000L)

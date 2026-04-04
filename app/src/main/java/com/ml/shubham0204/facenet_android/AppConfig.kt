@@ -10,7 +10,7 @@ object AppConfig {
 
     // Learning mode: skip embeddings with cosine similarity above this value to any
     // already-captured embedding (prevents collecting near-duplicate poses)
-    const val LEARNING_MODE_DIVERSITY_THRESHOLD = 0.92f
+    const val LEARNING_MODE_DIVERSITY_THRESHOLD = 0.90f
 
     // Learning mode: minimum similarity to the target person for a face to be eligible
     const val LEARNING_MODE_MIN_CONFIDENCE = 0.50f

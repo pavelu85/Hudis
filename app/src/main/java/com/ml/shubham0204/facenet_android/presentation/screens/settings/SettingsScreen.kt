@@ -151,6 +151,7 @@ fun SettingsScreen(
                     valueRange = 0.5f..1.0f,
                     steps = 9,
                     description = "Minimum confidence to match faces",
+                    defaultValue = 0.70f,
                     onInfoClick = { showConfidenceInfo = true }
                 )
             }
@@ -164,6 +165,7 @@ fun SettingsScreen(
                     valueRange = 0.7f..1.0f,
                     steps = 5,
                     description = "Skip similar poses during learning",
+                    defaultValue = 0.90f,
                     onInfoClick = { showDiversityInfo = true }
                 )
 
@@ -174,6 +176,7 @@ fun SettingsScreen(
                     valueRange = 500f..5000f,
                     steps = 17,
                     description = "Time between auto-captures (milliseconds)",
+                    defaultValue = 2000L,
                     onInfoClick = { showAutoCaptureIntervalInfo = true }
                 )
             }
@@ -187,6 +190,7 @@ fun SettingsScreen(
                     valueRange = 0.5f..1.0f,
                     steps = 9,
                     description = "Record all encounters below threshold",
+                    defaultValue = 0.70f,
                     onInfoClick = { showLastSeenInfo = true }
                 )
 
@@ -197,6 +201,7 @@ fun SettingsScreen(
                     valueRange = 0.3f..0.8f,
                     steps = 9,
                     description = "Similarity threshold in learning mode",
+                    defaultValue = 0.50f,
                     onInfoClick = { showLearningModeMinConfidenceInfo = true }
                 )
             }

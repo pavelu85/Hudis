@@ -1,8 +1,11 @@
 package com.ml.shubham0204.facenet_android.presentation.screens.settings
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
@@ -14,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -24,6 +29,7 @@ fun SliderSetting(
     valueRange: ClosedFloatingPointRange<Float> = 0.5f..1.0f,
     steps: Int = 0,
     description: String,
+    defaultValue: Float,
     onInfoClick: (() -> Unit)? = null,
     valueFormatter: (Float) -> String = { "%.2f".format(it) }
 ) {
@@ -64,15 +70,41 @@ fun SliderSetting(
                 }
             }
         }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            steps = steps,
+        val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp)
-        )
+                .height(48.dp)
+        ) {
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                steps = steps,
+                modifier = Modifier.fillMaxWidth()
+            )
+            // Default value indicator
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                val thumbRadius = 10.dp.toPx()
+                val trackWidth = size.width - 2 * thumbRadius
+                val normalizedDefault = (defaultValue - valueRange.start) / (valueRange.endInclusive - valueRange.start)
+                val lineX = thumbRadius + normalizedDefault * trackWidth
+                val lineHalfHeight = size.height * 0.3f
+                val centerY = size.height / 2f
+
+                drawLine(
+                    color = lineColor,
+                    start = Offset(x = lineX, y = centerY - lineHalfHeight),
+                    end = Offset(x = lineX, y = centerY + lineHalfHeight),
+                    strokeWidth = 3.dp.toPx()
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,6 +133,7 @@ fun LongSliderSetting(
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int = 0,
     description: String,
+    defaultValue: Long,
     onInfoClick: (() -> Unit)? = null,
     valueFormatter: (Long) -> String = { "${it}ms" }
 ) {
@@ -111,6 +144,7 @@ fun LongSliderSetting(
         valueRange = valueRange,
         steps = steps,
         description = description,
+        defaultValue = defaultValue.toFloat(),
         onInfoClick = onInfoClick,
         valueFormatter = { valueFormatter(it.toLong()) }
     )

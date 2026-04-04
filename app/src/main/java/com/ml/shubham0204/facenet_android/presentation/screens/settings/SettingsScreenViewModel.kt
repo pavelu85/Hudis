@@ -63,7 +63,7 @@ class SettingsScreenViewModel(
         settingsStore.resetToDefaults()
         confidenceThreshold.floatValue = 0.70f
         lastSeenMinConfidence.floatValue = 0.70f
-        learningModeDiversityThreshold.floatValue = 0.92f
+        learningModeDiversityThreshold.floatValue = 0.90f
         autoCapureIntervalMs.longValue = 2000L
         learningModeMinConfidence.floatValue = 0.50f
     }
